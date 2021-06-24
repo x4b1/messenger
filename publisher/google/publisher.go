@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/pubsub"
+
 	"github.com/xabi93/messenger"
 	"github.com/xabi93/messenger/publisher"
 )

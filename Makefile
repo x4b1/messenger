@@ -35,7 +35,7 @@ clean: ## Remove build related file
 
 ## Test:
 test: ## Run the tests of the project
-	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS)
+	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS) -count=1
 
 coverage: ## Run the tests of the project and export the coverage
 	$(GOTEST) -cover -covermode=count -coverprofile=profile.cov ./...

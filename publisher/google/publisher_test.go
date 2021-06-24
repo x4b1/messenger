@@ -7,10 +7,11 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/stretchr/testify/require"
-	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/publisher/google"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+
+	"github.com/xabi93/messenger"
+	"github.com/xabi93/messenger/publisher/google"
 )
 
 const topic = "test-topic"

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+
 	"github.com/xabi93/messenger"
 	"github.com/xabi93/messenger/publisher"
 )

@@ -66,7 +66,7 @@ linters-settings:
   gofumpt:
     extra-rules: true
   goimports:
-    local-prefixes: go.lsp.dev/protocol
+    local-prefixes: github.com/xabi93/messenger
   gosimple:
     go: 1.16
   govet:
