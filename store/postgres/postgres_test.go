@@ -8,10 +8,13 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/ory/dockertest"
+	"github.com/ory/dockertest/docker"
 	"github.com/stretchr/testify/require"
+
 	"github.com/xabi93/messenger"
 	"github.com/xabi93/messenger/store/postgres"
 )
@@ -29,13 +32,24 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
-	postgresContainer, err := pool.Run("postgres", "13", []string{
-		fmt.Sprintf("POSTGRES_USER=%s", user),
-		fmt.Sprintf("POSTGRES_PASSWORD=%s", password),
+	postgresContainer, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "13",
+		Env: []string{
+			fmt.Sprintf("POSTGRES_USER=%s", user),
+			fmt.Sprintf("POSTGRES_PASSWORD=%s", password),
+		},
+	}, func(config *docker.HostConfig) {
+		config.AutoRemove = true
+		config.RestartPolicy = docker.RestartPolicy{
+			Name: "no",
+		}
 	})
 	if err != nil {
 		log.Fatalf("Could not start postgres: %s", err)
 	}
+
+	postgresContainer.Expire(60)
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
@@ -118,25 +132,33 @@ func TestStorePublishMessages(t *testing.T) {
 		ctx := context.Background()
 		require := require.New(t)
 
+		t.Cleanup(func() {
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+		})
+
 		tx, err := conn.Begin(ctx)
 		require.NoError(err)
-		defer tx.Rollback(ctx)
 
 		publishMsgs := make([]*messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
 			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
-			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
 			require.NoError(err)
+			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
+			publishMsgs[i].Metadata.Set("test", "with transaction")
+			publishMsgs[i].CreatedAt = publishMsgs[i].CreatedAt.Add(time.Second)
 		}
 
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
+		require.NoError(tx.Commit(ctx))
 
 		msgs, err := pg.Messages(ctx, batch)
 		require.NoError(err)
 
 		require.Len(msgs, batch)
-		require.Equal(publishMsgs[:batch], msgs)
+		for i, msg := range publishMsgs[:batch] {
+			require.Equal(msg.ID, msgs[i].ID)
+		}
 
 		require.NoError(pg.Published(ctx, msgs...))
 
@@ -144,18 +166,26 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(err)
 
 		require.Len(msgs, totalMsgs-batch)
-		require.Equal(publishMsgs[batch:], msgs)
+		for i, msg := range publishMsgs[batch:] {
+			require.Equal(msg.ID, msgs[i].ID)
+		}
 	})
 
 	t.Run("without transaction", func(t *testing.T) {
 		require := require.New(t)
 
+		t.Cleanup(func() {
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+		})
+
 		publishMsgs := make([]*messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
 			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
-			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
 			require.NoError(err)
+			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
+			publishMsgs[i].Metadata.Set("test", "without transaction")
+			publishMsgs[i].CreatedAt = publishMsgs[i].CreatedAt.Add(time.Second)
 		}
 
 		require.NoError(pg.Store(context.Background(), nil, publishMsgs...))
@@ -164,7 +194,9 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(err)
 
 		require.Len(msgs, batch)
-		require.Equal(publishMsgs[:batch], msgs)
+		for i, msg := range publishMsgs[:batch] {
+			require.Equal(msg.ID, msgs[i].ID)
+		}
 
 		require.NoError(pg.Published(context.Background(), msgs...))
 
@@ -172,6 +204,8 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(err)
 
 		require.Len(msgs, totalMsgs-batch)
-		require.Equal(publishMsgs[batch:], msgs)
+		for i, msg := range publishMsgs[batch:] {
+			require.Equal(msg.ID, msgs[i].ID)
+		}
 	})
 }
