@@ -20,7 +20,7 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.5+incompatible
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/api v0.40.0
-	google.golang.org/grpc v1.36.0
+	google.golang.org/api v0.49.0
+	google.golang.org/grpc v1.38.0
 	gotest.tools v2.2.0+incompatible // indirect
 )
