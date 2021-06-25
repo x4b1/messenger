@@ -18,7 +18,7 @@ type Source interface {
 	Published(ctx context.Context, msg ...*messenger.Message) error
 }
 
-// Source is the interface that wraps the basic message publishing.
+// Publisher is the interface that wraps the basic message publishing.
 type Publisher interface {
 	// Send to the message queue the message
 	Publish(ctx context.Context, msg *messenger.Message) error
