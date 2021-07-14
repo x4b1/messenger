@@ -4,3 +4,15 @@ updates:
   directory: /
   schedule:
     interval: weekly
+- package-ecosystem: ""
+  directory: /github
+  schedule:
+    interval: weekly
+- package-ecosystem: ""
+  directory: /
+  schedule:
+    interval: weekly
+- package-ecosystem: ""
+  directory: /github/workflows
+  schedule:
+    interval: weekly
