@@ -21,6 +21,6 @@ require (
 	github.com/ory/dockertest v3.3.5+incompatible
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/api v0.40.0
-	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc v1.40.0
 	gotest.tools v2.2.0+incompatible // indirect
 )
