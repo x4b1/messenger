@@ -1,6 +1,6 @@
 //nolint: paralleltest // need connection pool in order to run tests in parallel
 // TODO: run tests in parallel
-package postgres_test
+package pgx_test
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/store/postgres"
+	postgres "github.com/xabi93/messenger/store/pgx"
 )
 
 const (

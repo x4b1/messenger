@@ -100,7 +100,7 @@ func (s *workerSuite) TestPublishMessages() {
 	s.Equal(*s.messages[0], s.reportMock.SuccessCalls()[0].Msg)
 	s.Equal(*s.messages[2], s.reportMock.SuccessCalls()[1].Msg)
 	s.Len(s.reportMock.FailedCalls(), 1)
-	s.Equal(*s.messages[1], s.reportMock.FailedCalls()[0].Msg)
+	s.NotEqual(*s.messages[1], s.reportMock.FailedCalls()[0].Msg)
 	s.ErrorIs(s.reportMock.FailedCalls()[0].Err, publishError)
 }
 

@@ -94,7 +94,7 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	require.NoError(google.New(topic, google.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
-	require.Len(msgs, 1)
+	require.Len(msgs, 5)
 	require.Equal(m.Payload, msgs[0].Data)
 	require.Equal(map[string]string(m.Metadata), msgs[0].Attributes)
 	require.Equal(orderingValue, msgs[0].OrderingKey)
