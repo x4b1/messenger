@@ -15,7 +15,7 @@ require (
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/jackc/pgconn v1.10.0
 	github.com/jackc/pgx/v4 v4.11.0
-	github.com/matryer/moq v0.2.1
+	github.com/matryer/moq v0.2.5
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/ory/dockertest v3.3.5+incompatible
