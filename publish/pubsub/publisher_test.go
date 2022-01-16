@@ -1,4 +1,4 @@
-package google_test
+package pubsub_test
 
 import (
 	"context"
@@ -9,9 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/publisher/google"
+	pubsubpublish "github.com/xabi93/messenger/publish/pubsub"
 )
 
 const topic = "test-topic"
@@ -22,7 +23,7 @@ func initPubsub(ctx context.Context, t *testing.T) (*pstest.Server, *pubsub.Topi
 	srv := pstest.NewServer()
 	t.Cleanup(func() { srv.Close() })
 
-	conn, err := grpc.Dial(srv.Addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })
 
@@ -48,7 +49,7 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 	m.Metadata.Set("aggregate_id", "29a7556a-ae85-4c1d-8f04-d57ed3122586")
 	require.NoError(err)
 
-	require.NoError(google.New(topic).Publish(ctx, m))
+	require.NoError(pubsubpublish.New(topic).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(msgs, 1)
@@ -69,7 +70,7 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	require.NoError(err)
 
 	ordKey := "default-ord-key"
-	require.NoError(google.New(topic, google.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
+	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(msgs, 1)
@@ -91,7 +92,7 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	m.Metadata.Set(metaKey, orderingValue)
 	require.NoError(err)
 
-	require.NoError(google.New(topic, google.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
+	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(msgs, 1)

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/ory/dockertest"
-	"github.com/ory/dockertest/docker"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 
 	"github.com/xabi93/messenger"
@@ -139,7 +139,7 @@ func TestStorePublishMessages(t *testing.T) {
 		tx, err := conn.Begin(ctx)
 		require.NoError(err)
 
-		publishMsgs := make([]*messenger.Message, totalMsgs)
+		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
 			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
@@ -178,7 +178,7 @@ func TestStorePublishMessages(t *testing.T) {
 			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
 		})
 
-		publishMsgs := make([]*messenger.Message, totalMsgs)
+		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
 			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))

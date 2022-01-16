@@ -80,7 +80,7 @@ type executor interface {
 }
 
 // Store saves messages.
-func (p Postgres) Store(ctx context.Context, tx pgx.Tx, msgs ...*messenger.Message) error {
+func (p Postgres) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 4
 	valueArgs := make([]interface{}, 0, len(msgs)*totalArgs)
@@ -89,7 +89,7 @@ func (p Postgres) Store(ctx context.Context, tx pgx.Tx, msgs ...*messenger.Messa
 		valueArgs = append(valueArgs, msg.ID, msg.Metadata, msg.Payload, msg.CreatedAt)
 	}
 
-	stmt := fmt.Sprintf(`INSERT INTO "%s"."%s" (id, metadata, payload, created_at) VALUES %s`, p.config.Schema, p.config.Table, strings.Join(valueStr, ","))
+	stmt := fmt.Sprintf(`INSERT INTO %q.%q (id, metadata, payload, created_at) VALUES %s`, p.config.Schema, p.config.Table, strings.Join(valueStr, ","))
 
 	var exec executor = p.conn
 	if tx != nil {
@@ -105,7 +105,7 @@ func (p Postgres) Messages(ctx context.Context, batch int) ([]*messenger.Message
 	rows, err := p.conn.Query(
 		ctx,
 		fmt.Sprintf(
-			`SELECT id, metadata, payload, created_at FROM "%s"."%s" WHERE published = false ORDER BY created_at ASC LIMIT $1`,
+			`SELECT id, metadata, payload, created_at FROM %q.%q WHERE published = false ORDER BY created_at ASC LIMIT $1`,
 			p.config.Schema,
 			p.config.Table,
 		),
@@ -140,7 +140,7 @@ func (p Postgres) Published(ctx context.Context, msgs ...*messenger.Message) err
 
 	_, err := p.conn.Exec(
 		ctx,
-		fmt.Sprintf(`UPDATE "%s"."%s" SET published = TRUE WHERE id = ANY($1)`, p.config.Schema, p.config.Table),
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, p.config.Schema, p.config.Table),
 		ids,
 	)
 

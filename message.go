@@ -22,12 +22,12 @@ func (m Metadata) Set(key, value string) {
 }
 
 // NewMessage returns a new Message given a payload.
-func NewMessage(payload []byte) (*Message, error) {
+func NewMessage(payload []byte) (Message, error) {
 	if len(payload) == 0 {
-		return nil, errors.New("payload cannot be empty")
+		return Message{}, errors.New("payload cannot be empty")
 	}
 
-	return &Message{
+	return Message{
 		ID:        uuid.Must(uuid.NewRandom()),
 		Payload:   payload,
 		Metadata:  Metadata{},

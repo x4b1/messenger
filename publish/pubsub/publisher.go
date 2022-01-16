@@ -1,4 +1,4 @@
-package google
+package pubsub
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"cloud.google.com/go/pubsub"
 
 	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/publisher"
+	"github.com/xabi93/messenger/publish"
 )
 
 // Option is a function to set options to Publisher.
@@ -37,7 +37,7 @@ func New(topic *pubsub.Topic, opts ...Option) *Publisher {
 	return &p
 }
 
-var _ publisher.Publisher = &Publisher{}
+var _ publish.Queue = &Publisher{}
 
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
@@ -50,7 +50,7 @@ type Publisher struct {
 }
 
 // Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg *messenger.Message) error {
+func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	_, err := p.topic.Publish(ctx, &pubsub.Message{
 		Attributes:  msg.Metadata,
 		Data:        msg.Payload,
@@ -62,7 +62,7 @@ func (p Publisher) Publish(ctx context.Context, msg *messenger.Message) error {
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg *messenger.Message) string {
+func (p Publisher) orderingKey(msg messenger.Message) string {
 	if key := msg.Metadata.Get(p.metaOrdKey); key != "" {
 		return key
 	}
