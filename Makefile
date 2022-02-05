@@ -1,5 +1,3 @@
-GOCMD=go
-GOTEST=$(GOCMD) test
 BINARY_NAME=messenger
 VERSION?=0.0.0
 DOCKER_REGISTRY?= #if set it should finished by /
@@ -16,47 +14,47 @@ default: lint test
 
 all: help
 
+## Deps:
+tools: ## Install development tools
+	cd tools && go install $(shell cd tools && go list -f '{{ join .Imports " " }}' -tags=tools)
+
+tidy: ## Fix dependencies
+	@go mod tidy -compat=1.17
+	cd tools && go mod tidy -compat=1.17
+
 ## Generate:
 generate: ## Generate
-	$(GOCMD) generate ./...
+	@go generate ./...
 
-## Tools:
-tidy: ## Install development tools
-	$(GOCMD) mod tidy 
+## Test:
+test: ## Run the tests of the project
+	@go test -race -v -count 1 ./...
+
+coverage: cov-report ## Displays coverage per func on cli
+	@go tool cover -func=report.cov
+
+coverage-html: cov-report ## Displays the coverage results in the browser
+	@go tool cover -html=report.cov
+
+.PHONY: cov-report
+cov-report:
+	@go test -count 1 ./... -coverpkg=./... -coverprofile=report.cov
+
+
+## Lint:
+lint: ## Lint go code
+	@golangci-lint run
+lint-fix: ## Lint go code and try to fix issues
+	@golangci-lint run --fix
+
 
 ## Build:
 build: ## Build project and put the output binary in bin/
 	mkdir -p bin
-	$(GOCMD) build -o bin/$(BINARY_NAME) .
+	@go build -o bin/$(BINARY_NAME) .
 
-clean: ## Remove build related file
-	rm -fr ./bin
-	rm -f ./junit-report.xml checkstyle-report.xml ./coverage.xml ./profile.cov yamllint-checkstyle.xml
-
-## Test:
-test: ## Run the tests of the project
-	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS) -count=1
-
-coverage: ## Run the tests of the project and export the coverage
-	$(GOTEST) -cover -covermode=count -coverprofile=profile.cov ./...
-	$(GOCMD) tool cover -func profile.cov
-
-## Lint:
-lint: ## Lint go code
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...
-lint-fix: ## Lint go code and try to fix issues
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --fix ./...
-
-## Docker:
 docker-build: ## Use the dockerfile to build the container
 	docker build --rm --tag $(BINARY_NAME) .
-
-docker-release: ## Release the container with tag latest and version
-	docker tag $(BINARY_NAME) $(DOCKER_REGISTRY)$(BINARY_NAME):latest
-	docker tag $(BINARY_NAME) $(DOCKER_REGISTRY)$(BINARY_NAME):$(VERSION)
-	# Push the docker images
-	docker push $(DOCKER_REGISTRY)$(BINARY_NAME):latest
-	docker push $(DOCKER_REGISTRY)$(BINARY_NAME):$(VERSION)
 
 ## Help:
 help: ## Show this help.

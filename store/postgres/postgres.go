@@ -36,7 +36,7 @@ func Open(ctx context.Context, connStr string, conf Config) (*Postgres, error) {
 	return WithInstance(ctx, conn, conf)
 }
 
-// WithInstance returns Postgres source initialized with the given connection instance and config.
+// WithInstance returns Postgres source initialised with the given connection instance and config.
 func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Postgres, error) {
 	var err error
 	if err := conn.Ping(ctx); err != nil {

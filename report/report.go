@@ -15,7 +15,7 @@ type Reporter struct {
 	stats stats
 }
 
-// Init initializes the report stats.
+// Init initialises the report stats.
 func (r *Reporter) Init() {
 	r.stats = stats{
 		StartTime: time.Now(),

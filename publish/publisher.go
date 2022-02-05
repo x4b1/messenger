@@ -9,7 +9,7 @@ import (
 	"github.com/xabi93/messenger/report"
 )
 
-//go:generate go run github.com/matryer/moq -stub -out publish_mock_test.go . Source Queue Reporter
+//go:generate moq -stub -out publish_mock_test.go . Source Queue Reporter
 
 // Source is the interface that wraps the message retrieval and update methods.
 type Source interface {
@@ -29,7 +29,7 @@ type Queue interface {
 type Reporter interface {
 	// outputs an error happened during the publishing message process
 	Error(err error)
-	// initializes the reporting
+	// initialises the reporting
 	Init()
 	// Stores total messages to be published
 	TotalMessages(total int)
@@ -47,8 +47,8 @@ func WithReport(r Reporter) Option {
 	}
 }
 
-// NewWorker returns an initialized Worker given the parameters.
-// By default the worker will be initialized with NoopReporter that will not do any output.
+// NewPublisher returns a `Publisher` instance
+// By default the worker will be initialised with NoopReporter that will not do any output.
 func NewPublisher(src Source, queue Queue, batchSize int64, opts ...Option) *Publisher {
 	p := Publisher{
 		batchSize: batchSize,
@@ -78,8 +78,6 @@ func (p *Publisher) Publish(ctx context.Context) error {
 
 	msgs, err := p.source.Messages(ctx, p.batchSize)
 	if err != nil {
-		p.reporter.Error(err)
-
 		return err
 	}
 
@@ -87,19 +85,15 @@ func (p *Publisher) Publish(ctx context.Context) error {
 	for _, msg := range msgs {
 		if err := p.queue.Publish(ctx, msg); err != nil {
 			errs.Add(msg, err)
-
 			continue
 		}
 		if err := p.source.Published(ctx, msg); err != nil {
 			errs.Add(msg, err)
-
 			continue
 		}
 	}
 
 	if len(errs) > 0 {
-		p.reporter.Error(errs)
-
 		return errs
 	}
 
@@ -117,8 +111,11 @@ func (p *Publisher) Start(ctx context.Context, t *time.Ticker) error {
 			return nil
 		case <-t.C:
 			err := p.Publish(ctx)
-			if !errors.As(err, &PublishErrors{}) {
-				return err
+			if err != nil {
+				p.reporter.Error(err)
+				if !errors.As(err, &PublishErrors{}) {
+					return err
+				}
 			}
 		}
 	}

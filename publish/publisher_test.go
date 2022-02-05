@@ -83,8 +83,6 @@ func (s *publisherSuite) TestPublishMessages() {
 
 	s.Len(s.reportMock.InitCalls(), 1)
 	s.Len(s.reportMock.FinishCalls(), 1)
-	s.Len(s.reportMock.ErrorCalls(), 1)
-	s.Equal(s.reportMock.ErrorCalls()[0].Err, expectedError)
 }
 
 func (s *publisherSuite) TestFailsGettingMessages() {
