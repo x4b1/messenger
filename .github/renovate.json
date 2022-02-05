@@ -1,0 +1,11 @@
+{
+    "extends": [
+      "config:base",
+      ":semanticCommits",
+      ":semanticCommitTypeAll(chore)",
+      "group:allNonMajor"
+    ],
+    "reviewers": ["xabi93"],
+    "schedule": [ "every weekend" ],
+    "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
+}
