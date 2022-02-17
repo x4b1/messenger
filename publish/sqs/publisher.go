@@ -1,9 +1,10 @@
-package pubsub
+package sqs
 
 import (
 	"context"
 
-	"cloud.google.com/go/pubsub"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/xabi93/messenger/publish"
 	"github.com/xabi93/messenger/store"
@@ -27,8 +28,8 @@ func WithDefaultOrderingKey(key string) Option {
 }
 
 // New returns a new Publisher instance.
-func New(topic *pubsub.Topic, opts ...Option) *Publisher {
-	p := Publisher{topic: topic}
+func New(svc *sqs.SQS, queue string, opts ...Option) *Publisher {
+	p := Publisher{svc: svc}
 
 	for _, opt := range opts {
 		opt(&p)
@@ -41,8 +42,10 @@ var _ publish.Queue = &Publisher{}
 
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
-	// pubsub topic instance where are going to publish messages
-	topic *pubsub.Topic
+	// sqs service instance where are going to publish messages
+	svc *sqs.SQS
+	// queue url where are going to publish messages
+	queue string
 	// meta property of the message to use as ordering key
 	metaOrdKey string
 	// default ordering key in case not provided in message metadata
@@ -51,22 +54,35 @@ type Publisher struct {
 
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg store.Message) error {
-	_, err := p.topic.Publish(ctx, &pubsub.Message{
-		Attributes:  msg.Metadata,
-		Data:        msg.Payload,
-		OrderingKey: p.orderingKey(msg),
-	}).Get(ctx)
+	att := make(map[string]*sqs.MessageAttributeValue, len(msg.Metadata))
+	for k, v := range msg.Metadata {
+		att[k] = &sqs.MessageAttributeValue{
+			DataType:    aws.String("String"),
+			StringValue: aws.String(v),
+		}
+	}
+	_, err := p.svc.SendMessage(&sqs.SendMessageInput{
+		MessageDeduplicationId: aws.String(msg.ID),
+		MessageAttributes:      att,
+		MessageBody:            aws.String(string(msg.Payload)),
+		QueueUrl:               aws.String(p.queue),
+		MessageGroupId:         p.orderingKey(msg),
+	})
 
 	return err
 }
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg store.Message) string {
+func (p Publisher) orderingKey(msg store.Message) *string {
 	key, ok := msg.Metadata[p.metaOrdKey]
 	if ok {
-		return key
+		return aws.String(key)
 	}
 
-	return p.defaultOrdKey
+	if p.defaultOrdKey != "" {
+		return aws.String(p.defaultOrdKey)
+	}
+
+	return nil
 }

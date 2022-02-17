@@ -6,13 +6,14 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/xabi93/messenger"
 	pubsubpublish "github.com/xabi93/messenger/publish/pubsub"
+	"github.com/xabi93/messenger/store"
 )
 
 const topic = "test-topic"
@@ -45,16 +46,18 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 
 	srv, topic := initPubsub(ctx, t)
 
-	m, err := messenger.NewMessage([]byte("some message"))
-	m.Metadata.Set("aggregate_id", "29a7556a-ae85-4c1d-8f04-d57ed3122586")
-	require.NoError(err)
+	m := store.Message{
+		ID:       uuid.Must(uuid.NewRandom()).String(),
+		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
+		Payload:  []byte("some message"),
+	}
 
 	require.NoError(pubsubpublish.New(topic).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(msgs, 1)
 	require.Equal(m.Payload, msgs[0].Data)
-	require.Equal(map[string]string(m.Metadata), msgs[0].Attributes)
+	require.Equal(m.Metadata, msgs[0].Attributes)
 	require.Empty(msgs[0].OrderingKey)
 }
 
@@ -65,9 +68,11 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 
 	srv, topic := initPubsub(ctx, t)
 
-	m, err := messenger.NewMessage([]byte("some message"))
-	m.Metadata.Set("aggregate_id", "29a7556a-ae85-4c1d-8f04-d57ed3122586")
-	require.NoError(err)
+	m := store.Message{
+		ID:       uuid.Must(uuid.NewRandom()).String(),
+		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
+		Payload:  []byte("some message"),
+	}
 
 	ordKey := "default-ord-key"
 	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
@@ -75,7 +80,7 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(msgs, 1)
 	require.Equal(m.Payload, msgs[0].Data)
-	require.Equal(map[string]string(m.Metadata), msgs[0].Attributes)
+	require.Equal(m.Metadata, msgs[0].Attributes)
 	require.Equal(ordKey, msgs[0].OrderingKey)
 }
 
@@ -88,9 +93,12 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 
 	metaKey := "meta-key"
 	orderingValue := "value-1"
-	m, err := messenger.NewMessage([]byte("some message"))
-	m.Metadata.Set(metaKey, orderingValue)
-	require.NoError(err)
+
+	m := store.Message{
+		ID:       uuid.Must(uuid.NewRandom()).String(),
+		Metadata: map[string]string{metaKey: orderingValue},
+		Payload:  []byte("some message"),
+	}
 
 	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
 

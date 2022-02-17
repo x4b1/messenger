@@ -2,55 +2,50 @@ package messenger
 
 import (
 	"errors"
-	"time"
-
-	"github.com/google/uuid"
 )
 
-// Metadata maps a string key to a string value.
-// It is used to add contextual data to the message, like for events, the event name.
-type Metadata map[string]string
-
-// Get returns the value of the given key if exists, if not returns empty.
-func (m Metadata) Get(key string) string {
-	return m[key]
-}
-
-// Set adds or replaces the value of the metadata for the given key.
-func (m Metadata) Set(key, value string) {
-	m[key] = value
-}
+// ErrEmptyMessagePayload is the error returned when the message payload is empty.
+var ErrEmptyMessagePayload = errors.New("empty message payload")
 
 // NewMessage returns a new Message given a payload.
-func NewMessage(payload []byte) (Message, error) {
+func NewMessage(payload []byte) (*GenericMessage, error) {
 	if len(payload) == 0 {
-		return Message{}, errors.New("payload cannot be empty")
+		return nil, ErrEmptyMessagePayload
 	}
 
-	return Message{
-		ID:        uuid.Must(uuid.NewRandom()),
-		Payload:   payload,
-		Metadata:  Metadata{},
-		CreatedAt: time.Now().UTC(),
+	return &GenericMessage{
+		payload:  payload,
+		metadata: map[string]string{},
 	}, nil
 }
 
 // A Message represents a message to be sent to message message queue.
-type Message struct {
-	// ID is the unique identifier for the message, it is used to store the message and to set in
-	// message queue
-	ID uuid.UUID
+type Message interface {
+	Metadata() map[string]string
+	Payload() interface{}
+}
+
+// GenericMessage represents a message to be sent to message message queue.
+// It implements the Message interface.
+type GenericMessage struct {
 	// Metadata contains the message header to be sent by the messenger to the message queue.
-	//
-	// typical message headers:
-	// - message type
-	// - aggregate id
-	Metadata Metadata
+	metadata map[string]string
 	// Payload is the message payload.
-	//
-	// Payload must not be empty
-	Payload []byte
-	// CreatedAt represents the moment when it is created the message in UTC.
-	// this field is used to publish the messages in order of creation
-	CreatedAt time.Time
+	// Must not be empty
+	payload interface{}
+}
+
+// AddMetadata adds the given key-value pair to the message metadata.
+func (m *GenericMessage) AddMetadata(key, value string) {
+	m.metadata[key] = value
+}
+
+// Metadata returns the message metadata.
+func (m *GenericMessage) Metadata() map[string]string {
+	return m.metadata
+}
+
+// Payload returns the message payload.
+func (m *GenericMessage) Payload() interface{} {
+	return m.payload
 }
