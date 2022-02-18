@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/xabi93/messenger"
 	"github.com/xabi93/messenger/report"
+	"github.com/xabi93/messenger/store"
 )
 
 //go:generate moq -stub -out publish_mock_test.go . Source Queue Reporter
@@ -14,15 +14,15 @@ import (
 // Source is the interface that wraps the message retrieval and update methods.
 type Source interface {
 	// List unpublished messages with a batch size
-	Messages(ctx context.Context, batch int64) ([]messenger.Message, error)
+	Messages(ctx context.Context, batch int64) ([]store.Message, error)
 	// Mark as published the given messages, if one of the messages fails will not update any of the messages
-	Published(ctx context.Context, msg ...messenger.Message) error
+	Published(ctx context.Context, msg ...store.Message) error
 }
 
 // Queue is the interface that wraps the basic message publishing.
 type Queue interface {
 	// Sends the message to queue
-	Publish(ctx context.Context, msg messenger.Message) error
+	Publish(ctx context.Context, msg store.Message) error
 }
 
 // Reporter has the functions to report the status of the publishing process.
@@ -81,7 +81,7 @@ func (p *Publisher) Publish(ctx context.Context) error {
 		return err
 	}
 
-	errs := NewPublishErrors()
+	errs := NewErrors()
 	for _, msg := range msgs {
 		if err := p.queue.Publish(ctx, msg); err != nil {
 			errs.Add(msg, err)
@@ -113,7 +113,7 @@ func (p *Publisher) Start(ctx context.Context, t *time.Ticker) error {
 			err := p.Publish(ctx)
 			if err != nil {
 				p.reporter.Error(err)
-				if !errors.As(err, &PublishErrors{}) {
+				if !errors.As(err, &Errors{}) {
 					return err
 				}
 			}

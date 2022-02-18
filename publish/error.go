@@ -4,22 +4,22 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/xabi93/messenger"
+	"github.com/xabi93/messenger/store"
 )
 
-// NewPublishErrors returns a new PublishErrors.
-func NewPublishErrors() PublishErrors {
-	return make(PublishErrors, 0)
+// NewErrors returns a new PublishErrors.
+func NewErrors() Errors {
+	return make(Errors, 0)
 }
 
-// PublishErrors is a collection messages that failed on publish.
-type PublishErrors []struct {
-	msg messenger.Message
+// Errors is a collection messages that failed on publish.
+type Errors []struct {
+	msg store.Message
 	err error
 }
 
 // Error returns a string representation of the error.
-func (errs PublishErrors) Error() string {
+func (errs Errors) Error() string {
 	var b strings.Builder
 	b.WriteString("publishing errors:\n")
 	for _, err := range errs {
@@ -29,9 +29,9 @@ func (errs PublishErrors) Error() string {
 	return b.String()
 }
 
-func (errs *PublishErrors) Add(msg messenger.Message, err error) {
+func (errs *Errors) Add(msg store.Message, err error) {
 	*errs = append(*errs, struct {
-		msg messenger.Message
+		msg store.Message
 		err error
 	}{msg, err})
 }

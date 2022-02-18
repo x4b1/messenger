@@ -1,6 +1,6 @@
 //nolint: paralleltest // need connection pool in order to run tests in parallel
 // TODO: run tests in parallel
-package postgres_test
+package pgx_test
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/ory/dockertest/v3"
@@ -16,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/store/postgres"
+	store "github.com/xabi93/messenger/store/pgx"
 )
 
 const (
@@ -76,7 +75,7 @@ func TestMain(m *testing.M) {
 func TestOpen(t *testing.T) {
 	require := require.New(t)
 
-	_, err := postgres.Open(context.Background(), conn.Config().ConnString(), postgres.Config{})
+	_, err := store.Open(context.Background(), conn.Config().ConnString(), store.Config{})
 	require.NoError(err)
 }
 
@@ -85,7 +84,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := postgres.WithInstance(context.Background(), conn, postgres.Config{
+	_, err := store.WithInstance(context.Background(), conn, store.Config{
 		Table: table,
 	})
 	require.NoError(err)
@@ -104,7 +103,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := postgres.WithInstance(context.Background(), conn, postgres.Config{
+	_, err := store.WithInstance(context.Background(), conn, store.Config{
 		Schema: "custom",
 	})
 
@@ -114,10 +113,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := postgres.WithInstance(context.Background(), conn, postgres.Config{})
+	_, err := store.WithInstance(context.Background(), conn, store.Config{})
 	require.NoError(err)
 
-	_, err = postgres.WithInstance(context.Background(), conn, postgres.Config{})
+	_, err = store.WithInstance(context.Background(), conn, store.Config{})
 	require.NoError(err)
 }
 
@@ -125,7 +124,7 @@ func TestStorePublishMessages(t *testing.T) {
 	totalMsgs := 15
 	batch := 10
 
-	pg, err := postgres.WithInstance(context.Background(), conn, postgres.Config{})
+	pg, err := store.WithInstance(context.Background(), conn, store.Config{})
 	require.NoError(t, err)
 
 	t.Run("with transaction", func(t *testing.T) {
@@ -133,7 +132,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
 		})
 
 		tx, err := conn.Begin(ctx)
@@ -142,11 +141,11 @@ func TestStorePublishMessages(t *testing.T) {
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
-			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
 			require.NoError(err)
-			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
-			publishMsgs[i].Metadata.Set("test", "with transaction")
-			publishMsgs[i].CreatedAt = publishMsgs[i].CreatedAt.Add(time.Second)
+			msg.AddMetadata("some", fmt.Sprintf("meta-%d", i+1))
+			msg.AddMetadata("test", "with transaction")
+			publishMsgs[i] = msg
 		}
 
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
@@ -157,7 +156,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.ID, msgs[i].ID)
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
+			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
 
 		require.NoError(pg.Published(ctx, msgs...))
@@ -167,7 +167,7 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.ID, msgs[i].ID)
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
 		}
 	})
 
@@ -175,17 +175,17 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
-			publishMsgs[i], err = messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
 			require.NoError(err)
-			publishMsgs[i].Metadata.Set("some", fmt.Sprintf("meta-%d", i+1))
-			publishMsgs[i].Metadata.Set("test", "without transaction")
-			publishMsgs[i].CreatedAt = publishMsgs[i].CreatedAt.Add(time.Second)
+			msg.AddMetadata("some", fmt.Sprintf("meta-%d", i+1))
+			msg.AddMetadata("test", "without transaction")
+			publishMsgs[i] = msg
 		}
 
 		require.NoError(pg.Store(context.Background(), nil, publishMsgs...))
@@ -195,7 +195,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.ID, msgs[i].ID)
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
+			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
 
 		require.NoError(pg.Published(context.Background(), msgs...))
@@ -205,7 +206,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.ID, msgs[i].ID)
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
+			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
 	})
 }

@@ -1,16 +1,18 @@
-package postgres
+package pgx
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/xabi93/messenger"
+	"github.com/xabi93/messenger/store"
 )
 
 // errors.
@@ -26,8 +28,8 @@ type Config struct {
 	Schema string
 }
 
-// Open returns a Postgres source connected to database connection string with config.
-func Open(ctx context.Context, connStr string, conf Config) (*Postgres, error) {
+// Open returns a pgx source connected to database connection string with config.
+func Open(ctx context.Context, connStr string, conf Config) (*Store, error) {
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
 		return nil, err
@@ -36,8 +38,8 @@ func Open(ctx context.Context, connStr string, conf Config) (*Postgres, error) {
 	return WithInstance(ctx, conn, conf)
 }
 
-// WithInstance returns Postgres source initialised with the given connection instance and config.
-func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Postgres, error) {
+// WithInstance returns Store source initialised with the given connection instance and config.
+func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Store, error) {
 	var err error
 	if err := conn.Ping(ctx); err != nil {
 		return nil, err
@@ -56,7 +58,7 @@ func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Postgres
 		config.Table = MessagesTable
 	}
 
-	px := Postgres{
+	px := Store{
 		conn:   conn,
 		config: config,
 	}
@@ -68,8 +70,8 @@ func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Postgres
 	return &px, nil
 }
 
-// Postgres is the instance to store and retrieve the messages in PostgreSQL database.
-type Postgres struct {
+// Store is the instance to store and retrieve the messages in PostgreSQL database.
+type Store struct {
 	conn *pgx.Conn
 
 	config Config
@@ -80,16 +82,21 @@ type executor interface {
 }
 
 // Store saves messages.
-func (p Postgres) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) error {
+func (p Store) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 4
 	valueArgs := make([]interface{}, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
 		valueStr[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)", i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4)
-		valueArgs = append(valueArgs, msg.ID, msg.Metadata, msg.Payload, msg.CreatedAt)
+		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), msg.Metadata(), msg.Payload(), time.Now())
 	}
 
-	stmt := fmt.Sprintf(`INSERT INTO %q.%q (id, metadata, payload, created_at) VALUES %s`, p.config.Schema, p.config.Table, strings.Join(valueStr, ","))
+	stmt := fmt.Sprintf(
+		`INSERT INTO %q.%q (id, metadata, payload, created_at) VALUES %s`,
+		p.config.Schema,
+		p.config.Table,
+		strings.Join(valueStr, ","),
+	)
 
 	var exec executor = p.conn
 	if tx != nil {
@@ -101,7 +108,7 @@ func (p Postgres) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Messag
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
-func (p Postgres) Messages(ctx context.Context, batch int) ([]*messenger.Message, error) {
+func (p Store) Messages(ctx context.Context, batch int) ([]*store.Message, error) {
 	rows, err := p.conn.Query(
 		ctx,
 		fmt.Sprintf(
@@ -116,10 +123,10 @@ func (p Postgres) Messages(ctx context.Context, batch int) ([]*messenger.Message
 	}
 	defer rows.Close()
 
-	msgs := make([]*messenger.Message, 0, batch)
+	msgs := make([]*store.Message, 0, batch)
 	for rows.Next() {
-		msg := &messenger.Message{}
-		if err := rows.Scan(&msg.ID, &msg.Metadata, &msg.Payload, &msg.CreatedAt); err != nil {
+		msg := &store.Message{}
+		if err := rows.Scan(&msg.ID, &msg.Metadata, &msg.Payload, &msg.At); err != nil {
 			return nil, err
 		}
 		msgs = append(msgs, msg)
@@ -132,8 +139,8 @@ func (p Postgres) Messages(ctx context.Context, batch int) ([]*messenger.Message
 }
 
 // Published marks as published the given messages.
-func (p Postgres) Published(ctx context.Context, msgs ...*messenger.Message) error {
-	ids := make([]uuid.UUID, len(msgs))
+func (p Store) Published(ctx context.Context, msgs ...*store.Message) error {
+	ids := make([]string, len(msgs))
 	for i, msg := range msgs {
 		ids[i] = msg.ID
 	}
@@ -148,7 +155,7 @@ func (p Postgres) Published(ctx context.Context, msgs ...*messenger.Message) err
 }
 
 // ensureTable creates if not exists the table to store messages.
-func (p *Postgres) ensureTable(ctx context.Context) error {
+func (p *Store) ensureTable(ctx context.Context) error {
 	// Check if table already exists, we cannot use `CREATE TABLE IF NOT EXISTS`,
 	// maybe the user does not have permissions to CREATE and it will fail
 	row := p.conn.QueryRow(
