@@ -38,8 +38,16 @@ func Open(ctx context.Context, connStr string, conf Config) (*Store, error) {
 	return WithInstance(ctx, conn, conf)
 }
 
+// Conn defines the pgx interface to be used by the store.
+type Conn interface {
+	Ping(ctx context.Context) error
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	executor
+}
+
 // WithInstance returns Store source initialised with the given connection instance and config.
-func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Store, error) {
+func WithInstance(ctx context.Context, conn Conn, config Config) (*Store, error) {
 	var err error
 	if err := conn.Ping(ctx); err != nil {
 		return nil, err
@@ -72,7 +80,7 @@ func WithInstance(ctx context.Context, conn *pgx.Conn, config Config) (*Store, e
 
 // Store is the instance to store and retrieve the messages in PostgreSQL database.
 type Store struct {
-	conn *pgx.Conn
+	conn Conn
 
 	config Config
 }
@@ -195,7 +203,7 @@ func (p *Store) ensureTable(ctx context.Context) error {
 }
 
 // currentSchema returns the connection schema is using.
-func currentSchema(ctx context.Context, db *pgx.Conn) (string, error) {
+func currentSchema(ctx context.Context, db Conn) (string, error) {
 	var schemaName string
 	if err := db.QueryRow(ctx, `SELECT CURRENT_SCHEMA()`).Scan(&schemaName); err != nil {
 		return "", err
