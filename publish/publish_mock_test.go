@@ -19,11 +19,11 @@ var _ Source = &SourceMock{}
 //
 // 		// make and configure a mocked Source
 // 		mockedSource := &SourceMock{
-// 			MessagesFunc: func(ctx context.Context, batch int64) ([]store.Message, error) {
+// 			MessagesFunc: func(ctx context.Context, publisherName string, batch int) ([]*store.Message, error) {
 // 				panic("mock out the Messages method")
 // 			},
-// 			PublishedFunc: func(ctx context.Context, msg ...store.Message) error {
-// 				panic("mock out the Published method")
+// 			SaveLastPublishedFunc: func(ctx context.Context, publisherName string, msg *store.Message) error {
+// 				panic("mock out the SaveLastPublished method")
 // 			},
 // 		}
 //
@@ -33,10 +33,10 @@ var _ Source = &SourceMock{}
 // 	}
 type SourceMock struct {
 	// MessagesFunc mocks the Messages method.
-	MessagesFunc func(ctx context.Context, batch int64) ([]store.Message, error)
+	MessagesFunc func(ctx context.Context, publisherName string, batch int) ([]*store.Message, error)
 
-	// PublishedFunc mocks the Published method.
-	PublishedFunc func(ctx context.Context, msg ...store.Message) error
+	// SaveLastPublishedFunc mocks the SaveLastPublished method.
+	SaveLastPublishedFunc func(ctx context.Context, publisherName string, msg *store.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -44,53 +44,61 @@ type SourceMock struct {
 		Messages []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// PublisherName is the publisherName argument value.
+			PublisherName string
 			// Batch is the batch argument value.
-			Batch int64
+			Batch int
 		}
-		// Published holds details about calls to the Published method.
-		Published []struct {
+		// SaveLastPublished holds details about calls to the SaveLastPublished method.
+		SaveLastPublished []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
+			// PublisherName is the publisherName argument value.
+			PublisherName string
 			// Msg is the msg argument value.
-			Msg []store.Message
+			Msg *store.Message
 		}
 	}
-	lockMessages  sync.RWMutex
-	lockPublished sync.RWMutex
+	lockMessages          sync.RWMutex
+	lockSaveLastPublished sync.RWMutex
 }
 
 // Messages calls MessagesFunc.
-func (mock *SourceMock) Messages(ctx context.Context, batch int64) ([]store.Message, error) {
+func (mock *SourceMock) Messages(ctx context.Context, publisherName string, batch int) ([]*store.Message, error) {
 	callInfo := struct {
-		Ctx   context.Context
-		Batch int64
+		Ctx           context.Context
+		PublisherName string
+		Batch         int
 	}{
-		Ctx:   ctx,
-		Batch: batch,
+		Ctx:           ctx,
+		PublisherName: publisherName,
+		Batch:         batch,
 	}
 	mock.lockMessages.Lock()
 	mock.calls.Messages = append(mock.calls.Messages, callInfo)
 	mock.lockMessages.Unlock()
 	if mock.MessagesFunc == nil {
 		var (
-			messagesOut []store.Message
+			messagesOut []*store.Message
 			errOut      error
 		)
 		return messagesOut, errOut
 	}
-	return mock.MessagesFunc(ctx, batch)
+	return mock.MessagesFunc(ctx, publisherName, batch)
 }
 
 // MessagesCalls gets all the calls that were made to Messages.
 // Check the length with:
 //     len(mockedSource.MessagesCalls())
 func (mock *SourceMock) MessagesCalls() []struct {
-	Ctx   context.Context
-	Batch int64
+	Ctx           context.Context
+	PublisherName string
+	Batch         int
 } {
 	var calls []struct {
-		Ctx   context.Context
-		Batch int64
+		Ctx           context.Context
+		PublisherName string
+		Batch         int
 	}
 	mock.lockMessages.RLock()
 	calls = mock.calls.Messages
@@ -98,41 +106,45 @@ func (mock *SourceMock) MessagesCalls() []struct {
 	return calls
 }
 
-// Published calls PublishedFunc.
-func (mock *SourceMock) Published(ctx context.Context, msg ...store.Message) error {
+// SaveLastPublished calls SaveLastPublishedFunc.
+func (mock *SourceMock) SaveLastPublished(ctx context.Context, publisherName string, msg *store.Message) error {
 	callInfo := struct {
-		Ctx context.Context
-		Msg []store.Message
+		Ctx           context.Context
+		PublisherName string
+		Msg           *store.Message
 	}{
-		Ctx: ctx,
-		Msg: msg,
+		Ctx:           ctx,
+		PublisherName: publisherName,
+		Msg:           msg,
 	}
-	mock.lockPublished.Lock()
-	mock.calls.Published = append(mock.calls.Published, callInfo)
-	mock.lockPublished.Unlock()
-	if mock.PublishedFunc == nil {
+	mock.lockSaveLastPublished.Lock()
+	mock.calls.SaveLastPublished = append(mock.calls.SaveLastPublished, callInfo)
+	mock.lockSaveLastPublished.Unlock()
+	if mock.SaveLastPublishedFunc == nil {
 		var (
 			errOut error
 		)
 		return errOut
 	}
-	return mock.PublishedFunc(ctx, msg...)
+	return mock.SaveLastPublishedFunc(ctx, publisherName, msg)
 }
 
-// PublishedCalls gets all the calls that were made to Published.
+// SaveLastPublishedCalls gets all the calls that were made to SaveLastPublished.
 // Check the length with:
-//     len(mockedSource.PublishedCalls())
-func (mock *SourceMock) PublishedCalls() []struct {
-	Ctx context.Context
-	Msg []store.Message
+//     len(mockedSource.SaveLastPublishedCalls())
+func (mock *SourceMock) SaveLastPublishedCalls() []struct {
+	Ctx           context.Context
+	PublisherName string
+	Msg           *store.Message
 } {
 	var calls []struct {
-		Ctx context.Context
-		Msg []store.Message
+		Ctx           context.Context
+		PublisherName string
+		Msg           *store.Message
 	}
-	mock.lockPublished.RLock()
-	calls = mock.calls.Published
-	mock.lockPublished.RUnlock()
+	mock.lockSaveLastPublished.RLock()
+	calls = mock.calls.SaveLastPublished
+	mock.lockSaveLastPublished.RUnlock()
 	return calls
 }
 
@@ -146,7 +158,7 @@ var _ Queue = &QueueMock{}
 //
 // 		// make and configure a mocked Queue
 // 		mockedQueue := &QueueMock{
-// 			PublishFunc: func(ctx context.Context, msg store.Message) error {
+// 			PublishFunc: func(ctx context.Context, msg *store.Message) error {
 // 				panic("mock out the Publish method")
 // 			},
 // 		}
@@ -157,7 +169,7 @@ var _ Queue = &QueueMock{}
 // 	}
 type QueueMock struct {
 	// PublishFunc mocks the Publish method.
-	PublishFunc func(ctx context.Context, msg store.Message) error
+	PublishFunc func(ctx context.Context, msg *store.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -166,17 +178,17 @@ type QueueMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg store.Message
+			Msg *store.Message
 		}
 	}
 	lockPublish sync.RWMutex
 }
 
 // Publish calls PublishFunc.
-func (mock *QueueMock) Publish(ctx context.Context, msg store.Message) error {
+func (mock *QueueMock) Publish(ctx context.Context, msg *store.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg store.Message
+		Msg *store.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -198,11 +210,11 @@ func (mock *QueueMock) Publish(ctx context.Context, msg store.Message) error {
 //     len(mockedQueue.PublishCalls())
 func (mock *QueueMock) PublishCalls() []struct {
 	Ctx context.Context
-	Msg store.Message
+	Msg *store.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg store.Message
+		Msg *store.Message
 	}
 	mock.lockPublish.RLock()
 	calls = mock.calls.Publish
@@ -220,17 +232,8 @@ var _ Reporter = &ReporterMock{}
 //
 // 		// make and configure a mocked Reporter
 // 		mockedReporter := &ReporterMock{
-// 			ErrorFunc: func(err error)  {
-// 				panic("mock out the Error method")
-// 			},
-// 			FinishFunc: func()  {
-// 				panic("mock out the Finish method")
-// 			},
-// 			InitFunc: func()  {
-// 				panic("mock out the Init method")
-// 			},
-// 			TotalMessagesFunc: func(total int)  {
-// 				panic("mock out the TotalMessages method")
+// 			ReportFunc: func(ctx context.Context, r *Report)  {
+// 				panic("mock out the Report method")
 // 			},
 // 		}
 //
@@ -239,153 +242,53 @@ var _ Reporter = &ReporterMock{}
 //
 // 	}
 type ReporterMock struct {
-	// ErrorFunc mocks the Error method.
-	ErrorFunc func(err error)
-
-	// FinishFunc mocks the Finish method.
-	FinishFunc func()
-
-	// InitFunc mocks the Init method.
-	InitFunc func()
-
-	// TotalMessagesFunc mocks the TotalMessages method.
-	TotalMessagesFunc func(total int)
+	// ReportFunc mocks the Report method.
+	ReportFunc func(ctx context.Context, r *Report)
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Error holds details about calls to the Error method.
-		Error []struct {
-			// Err is the err argument value.
-			Err error
-		}
-		// Finish holds details about calls to the Finish method.
-		Finish []struct {
-		}
-		// Init holds details about calls to the Init method.
-		Init []struct {
-		}
-		// TotalMessages holds details about calls to the TotalMessages method.
-		TotalMessages []struct {
-			// Total is the total argument value.
-			Total int
+		// Report holds details about calls to the Report method.
+		Report []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// R is the r argument value.
+			R *Report
 		}
 	}
-	lockError         sync.RWMutex
-	lockFinish        sync.RWMutex
-	lockInit          sync.RWMutex
-	lockTotalMessages sync.RWMutex
+	lockReport sync.RWMutex
 }
 
-// Error calls ErrorFunc.
-func (mock *ReporterMock) Error(err error) {
+// Report calls ReportFunc.
+func (mock *ReporterMock) Report(ctx context.Context, r *Report) {
 	callInfo := struct {
-		Err error
+		Ctx context.Context
+		R   *Report
 	}{
-		Err: err,
+		Ctx: ctx,
+		R:   r,
 	}
-	mock.lockError.Lock()
-	mock.calls.Error = append(mock.calls.Error, callInfo)
-	mock.lockError.Unlock()
-	if mock.ErrorFunc == nil {
+	mock.lockReport.Lock()
+	mock.calls.Report = append(mock.calls.Report, callInfo)
+	mock.lockReport.Unlock()
+	if mock.ReportFunc == nil {
 		return
 	}
-	mock.ErrorFunc(err)
+	mock.ReportFunc(ctx, r)
 }
 
-// ErrorCalls gets all the calls that were made to Error.
+// ReportCalls gets all the calls that were made to Report.
 // Check the length with:
-//     len(mockedReporter.ErrorCalls())
-func (mock *ReporterMock) ErrorCalls() []struct {
-	Err error
+//     len(mockedReporter.ReportCalls())
+func (mock *ReporterMock) ReportCalls() []struct {
+	Ctx context.Context
+	R   *Report
 } {
 	var calls []struct {
-		Err error
+		Ctx context.Context
+		R   *Report
 	}
-	mock.lockError.RLock()
-	calls = mock.calls.Error
-	mock.lockError.RUnlock()
-	return calls
-}
-
-// Finish calls FinishFunc.
-func (mock *ReporterMock) Finish() {
-	callInfo := struct {
-	}{}
-	mock.lockFinish.Lock()
-	mock.calls.Finish = append(mock.calls.Finish, callInfo)
-	mock.lockFinish.Unlock()
-	if mock.FinishFunc == nil {
-		return
-	}
-	mock.FinishFunc()
-}
-
-// FinishCalls gets all the calls that were made to Finish.
-// Check the length with:
-//     len(mockedReporter.FinishCalls())
-func (mock *ReporterMock) FinishCalls() []struct {
-} {
-	var calls []struct {
-	}
-	mock.lockFinish.RLock()
-	calls = mock.calls.Finish
-	mock.lockFinish.RUnlock()
-	return calls
-}
-
-// Init calls InitFunc.
-func (mock *ReporterMock) Init() {
-	callInfo := struct {
-	}{}
-	mock.lockInit.Lock()
-	mock.calls.Init = append(mock.calls.Init, callInfo)
-	mock.lockInit.Unlock()
-	if mock.InitFunc == nil {
-		return
-	}
-	mock.InitFunc()
-}
-
-// InitCalls gets all the calls that were made to Init.
-// Check the length with:
-//     len(mockedReporter.InitCalls())
-func (mock *ReporterMock) InitCalls() []struct {
-} {
-	var calls []struct {
-	}
-	mock.lockInit.RLock()
-	calls = mock.calls.Init
-	mock.lockInit.RUnlock()
-	return calls
-}
-
-// TotalMessages calls TotalMessagesFunc.
-func (mock *ReporterMock) TotalMessages(total int) {
-	callInfo := struct {
-		Total int
-	}{
-		Total: total,
-	}
-	mock.lockTotalMessages.Lock()
-	mock.calls.TotalMessages = append(mock.calls.TotalMessages, callInfo)
-	mock.lockTotalMessages.Unlock()
-	if mock.TotalMessagesFunc == nil {
-		return
-	}
-	mock.TotalMessagesFunc(total)
-}
-
-// TotalMessagesCalls gets all the calls that were made to TotalMessages.
-// Check the length with:
-//     len(mockedReporter.TotalMessagesCalls())
-func (mock *ReporterMock) TotalMessagesCalls() []struct {
-	Total int
-} {
-	var calls []struct {
-		Total int
-	}
-	mock.lockTotalMessages.RLock()
-	calls = mock.calls.TotalMessages
-	mock.lockTotalMessages.RUnlock()
+	mock.lockReport.RLock()
+	calls = mock.calls.Report
+	mock.lockReport.RUnlock()
 	return calls
 }

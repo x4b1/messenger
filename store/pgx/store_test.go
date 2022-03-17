@@ -21,6 +21,8 @@ import (
 const (
 	user     = "test"
 	password = "test"
+
+	publisherName = "my-publisher"
 )
 
 var conn *pgx.Conn
@@ -33,7 +35,7 @@ func TestMain(m *testing.M) {
 
 	postgresContainer, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "postgres",
-		Tag:        "13",
+		Tag:        "10",
 		Env: []string{
 			fmt.Sprintf("POSTGRES_USER=%s", user),
 			fmt.Sprintf("POSTGRES_PASSWORD=%s", password),
@@ -82,22 +84,25 @@ func TestOpen(t *testing.T) {
 func TestCustomTable(t *testing.T) {
 	require := require.New(t)
 
-	table := "my-messages"
+	msgtable := "my-messages"
+	statusTable := "my-status"
 
 	_, err := store.WithInstance(context.Background(), conn, store.Config{
-		Table: table,
+		MessagesTable:      msgtable,
+		PublishStatusTable: statusTable,
 	})
 	require.NoError(err)
 	row := conn.QueryRow(
 		context.Background(),
-		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
+		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name IN ($2, $3) LIMIT 1`,
 		"public",
-		table,
+		msgtable,
+		statusTable,
 	)
 
 	var count int
 	require.NoError(row.Scan(&count))
-	require.Equal(count, 1)
+	require.Equal(count, 2)
 }
 
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
@@ -151,7 +156,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
 		require.NoError(tx.Commit(ctx))
 
-		msgs, err := pg.Messages(ctx, batch)
+		msgs, err := pg.Messages(ctx, publisherName, batch)
 		require.NoError(err)
 
 		require.Len(msgs, batch)
@@ -160,9 +165,9 @@ func TestStorePublishMessages(t *testing.T) {
 			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
 
-		require.NoError(pg.Published(ctx, msgs...))
+		require.NoError(pg.SaveLastPublished(ctx, publisherName, msgs[len(msgs)-1]))
 
-		msgs, err = pg.Messages(ctx, batch)
+		msgs, err = pg.Messages(ctx, publisherName, batch)
 		require.NoError(err)
 
 		require.Len(msgs, totalMsgs-batch)
@@ -190,7 +195,7 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.NoError(pg.Store(context.Background(), nil, publishMsgs...))
 
-		msgs, err := pg.Messages(context.Background(), batch)
+		msgs, err := pg.Messages(context.Background(), publisherName, batch)
 		require.NoError(err)
 
 		require.Len(msgs, batch)
@@ -199,9 +204,9 @@ func TestStorePublishMessages(t *testing.T) {
 			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
 
-		require.NoError(pg.Published(context.Background(), msgs...))
+		require.NoError(pg.SaveLastPublished(context.Background(), publisherName, msgs[len(msgs)-1]))
 
-		msgs, err = pg.Messages(context.Background(), batch)
+		msgs, err = pg.Messages(context.Background(), publisherName, batch)
 		require.NoError(err)
 
 		require.Len(msgs, totalMsgs-batch)

@@ -2,10 +2,8 @@ package publish
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	"github.com/xabi93/messenger/report"
 	"github.com/xabi93/messenger/store"
 )
 
@@ -13,28 +11,16 @@ import (
 
 // Source is the interface that wraps the message retrieval and update methods.
 type Source interface {
-	// List unpublished messages with a batch size
-	Messages(ctx context.Context, batch int64) ([]store.Message, error)
-	// Mark as published the given messages, if one of the messages fails will not update any of the messages
-	Published(ctx context.Context, msg ...store.Message) error
+	// List unpublished messages with a batch size.
+	Messages(ctx context.Context, publisherName string, batch int) ([]*store.Message, error)
+	// Stores the status of the last published message.
+	SaveLastPublished(ctx context.Context, publisherName string, msg *store.Message) error
 }
 
 // Queue is the interface that wraps the basic message publishing.
 type Queue interface {
 	// Sends the message to queue
-	Publish(ctx context.Context, msg store.Message) error
-}
-
-// Reporter has the functions to report the status of the publishing process.
-type Reporter interface {
-	// outputs an error happened during the publishing message process
-	Error(err error)
-	// initialises the reporting
-	Init()
-	// Stores total messages to be published
-	TotalMessages(total int)
-	// marks as ended a single run of the worker
-	Finish()
+	Publish(ctx context.Context, msg *store.Message) error
 }
 
 // Option defines the optional parameters for publisher.
@@ -49,12 +35,13 @@ func WithReport(r Reporter) Option {
 
 // NewPublisher returns a `Publisher` instance
 // By default the worker will be initialised with NoopReporter that will not do any output.
-func NewPublisher(src Source, queue Queue, batchSize int64, opts ...Option) *Publisher {
+func NewPublisher(name string, src Source, queue Queue, batchSize int, opts ...Option) *Publisher {
 	p := Publisher{
+		name:      name,
 		batchSize: batchSize,
 		source:    src,
 		queue:     queue,
-		reporter:  report.Noop{},
+		reporter:  &NoopReporter{},
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -65,39 +52,55 @@ func NewPublisher(src Source, queue Queue, batchSize int64, opts ...Option) *Pub
 
 // Publisher is responsible for publishing messages from a source to a queue.
 type Publisher struct {
-	batchSize int64
+	name      string
+	batchSize int
 	source    Source
 	queue     Queue
 	reporter  Reporter
 }
 
+func (p *Publisher) publish(ctx context.Context) (int, int, error) {
+	msgs, err := p.source.Messages(ctx, p.name, p.batchSize)
+	if err != nil {
+		return 0, 0, WrapFatalError(err)
+	}
+
+	var (
+		lastPublished *store.Message
+		totalSuccess  int
+	)
+	for _, msg := range msgs {
+		err = p.queue.Publish(ctx, msg)
+		if err != nil {
+			break
+		}
+		totalSuccess++
+		lastPublished = msg
+	}
+
+	if lastPublished != nil {
+		if err := p.source.SaveLastPublished(ctx, p.name, lastPublished); err != nil {
+			return len(msgs), 0, WrapFatalError(err)
+		}
+	}
+
+	return len(msgs), totalSuccess, err
+}
+
 // Publish runs once publishing process.
 func (p *Publisher) Publish(ctx context.Context) error {
-	p.reporter.Init()
-	defer p.reporter.Finish()
-
-	msgs, err := p.source.Messages(ctx, p.batchSize)
-	if err != nil {
-		return err
+	report := Report{
+		StartTime: time.Now(),
 	}
 
-	errs := NewErrors()
-	for _, msg := range msgs {
-		if err := p.queue.Publish(ctx, msg); err != nil {
-			errs.Add(msg, err)
-			continue
-		}
-		if err := p.source.Published(ctx, msg); err != nil {
-			errs.Add(msg, err)
-			continue
-		}
-	}
+	defer func() {
+		report.EndTime = time.Now()
+		p.reporter.Report(ctx, &report)
+	}()
 
-	if len(errs) > 0 {
-		return errs
-	}
+	report.Total, report.Success, report.Error = p.publish(ctx)
 
-	return nil
+	return report.Error
 }
 
 // Start starts the publishing process. In case there is an error, it will be reported to the reporter,
@@ -110,10 +113,8 @@ func (p *Publisher) Start(ctx context.Context, t *time.Ticker) error {
 
 			return nil
 		case <-t.C:
-			err := p.Publish(ctx)
-			if err != nil {
-				p.reporter.Error(err)
-				if !errors.As(err, &Errors{}) {
+			if err := p.Publish(ctx); err != nil {
+				if IsFatalError(err) {
 					return err
 				}
 			}
