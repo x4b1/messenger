@@ -76,7 +76,7 @@ type Publisher struct {
 }
 
 // Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg store.Message) error {
+func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 	att := make(map[string]types.MessageAttributeValue, len(msg.Metadata))
 	for k, v := range msg.Metadata {
 		att[k] = types.MessageAttributeValue{
@@ -103,7 +103,7 @@ func (p Publisher) Publish(ctx context.Context, msg store.Message) error {
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg store.Message) *string {
+func (p Publisher) orderingKey(msg *store.Message) *string {
 	key, ok := msg.Metadata[p.metaOrdKey]
 	if ok {
 		return aws.String(key)

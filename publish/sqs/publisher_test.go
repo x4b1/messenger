@@ -27,7 +27,7 @@ const (
 
 var awsErr = errors.New("aws error")
 
-var msg = store.Message{
+var msg = &store.Message{
 	ID: uuid.Must(uuid.NewRandom()).String(),
 	Metadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",

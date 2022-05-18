@@ -122,7 +122,7 @@ func TestInitializeTwiceNotReturnError(t *testing.T) {
 
 func TestStorePublishMessages(t *testing.T) {
 	totalMsgs := 15
-	batch := 10
+	var batch int = 10
 
 	pg, err := store.WithInstance(context.Background(), conn, store.Config{})
 	require.NoError(t, err)

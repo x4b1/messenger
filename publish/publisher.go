@@ -14,15 +14,15 @@ import (
 // Source is the interface that wraps the message retrieval and update methods.
 type Source interface {
 	// List unpublished messages with a batch size
-	Messages(ctx context.Context, batch int64) ([]store.Message, error)
+	Messages(ctx context.Context, batch int) ([]*store.Message, error)
 	// Mark as published the given messages, if one of the messages fails will not update any of the messages
-	Published(ctx context.Context, msg ...store.Message) error
+	Published(ctx context.Context, msg ...*store.Message) error
 }
 
 // Queue is the interface that wraps the basic message publishing.
 type Queue interface {
 	// Sends the message to queue
-	Publish(ctx context.Context, msg store.Message) error
+	Publish(ctx context.Context, msg *store.Message) error
 }
 
 // Reporter has the functions to report the status of the publishing process.
@@ -49,7 +49,7 @@ func WithReport(r Reporter) Option {
 
 // NewPublisher returns a `Publisher` instance
 // By default the worker will be initialised with NoopReporter that will not do any output.
-func NewPublisher(src Source, queue Queue, batchSize int64, opts ...Option) *Publisher {
+func NewPublisher(src Source, queue Queue, batchSize int, opts ...Option) *Publisher {
 	p := Publisher{
 		batchSize: batchSize,
 		source:    src,
@@ -65,7 +65,7 @@ func NewPublisher(src Source, queue Queue, batchSize int64, opts ...Option) *Pub
 
 // Publisher is responsible for publishing messages from a source to a queue.
 type Publisher struct {
-	batchSize int64
+	batchSize int
 	source    Source
 	queue     Queue
 	reporter  Reporter

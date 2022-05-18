@@ -14,7 +14,7 @@ func NewErrors() Errors {
 
 // Errors is a collection messages that failed on publish.
 type Errors []struct {
-	msg store.Message
+	msg *store.Message
 	err error
 }
 
@@ -29,9 +29,9 @@ func (errs Errors) Error() string {
 	return b.String()
 }
 
-func (errs *Errors) Add(msg store.Message, err error) {
+func (errs *Errors) Add(msg *store.Message, err error) {
 	*errs = append(*errs, struct {
-		msg store.Message
+		msg *store.Message
 		err error
 	}{msg, err})
 }

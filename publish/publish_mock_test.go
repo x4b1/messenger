@@ -19,10 +19,10 @@ var _ Source = &SourceMock{}
 //
 // 		// make and configure a mocked Source
 // 		mockedSource := &SourceMock{
-// 			MessagesFunc: func(ctx context.Context, batch int64) ([]store.Message, error) {
+// 			MessagesFunc: func(ctx context.Context, batch int) ([]*store.Message, error) {
 // 				panic("mock out the Messages method")
 // 			},
-// 			PublishedFunc: func(ctx context.Context, msg ...store.Message) error {
+// 			PublishedFunc: func(ctx context.Context, msg ...*store.Message) error {
 // 				panic("mock out the Published method")
 // 			},
 // 		}
@@ -33,10 +33,10 @@ var _ Source = &SourceMock{}
 // 	}
 type SourceMock struct {
 	// MessagesFunc mocks the Messages method.
-	MessagesFunc func(ctx context.Context, batch int64) ([]store.Message, error)
+	MessagesFunc func(ctx context.Context, batch int) ([]*store.Message, error)
 
 	// PublishedFunc mocks the Published method.
-	PublishedFunc func(ctx context.Context, msg ...store.Message) error
+	PublishedFunc func(ctx context.Context, msg ...*store.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -45,14 +45,14 @@ type SourceMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Batch is the batch argument value.
-			Batch int64
+			Batch int
 		}
 		// Published holds details about calls to the Published method.
 		Published []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg []store.Message
+			Msg []*store.Message
 		}
 	}
 	lockMessages  sync.RWMutex
@@ -60,10 +60,10 @@ type SourceMock struct {
 }
 
 // Messages calls MessagesFunc.
-func (mock *SourceMock) Messages(ctx context.Context, batch int64) ([]store.Message, error) {
+func (mock *SourceMock) Messages(ctx context.Context, batch int) ([]*store.Message, error) {
 	callInfo := struct {
 		Ctx   context.Context
-		Batch int64
+		Batch int
 	}{
 		Ctx:   ctx,
 		Batch: batch,
@@ -73,7 +73,7 @@ func (mock *SourceMock) Messages(ctx context.Context, batch int64) ([]store.Mess
 	mock.lockMessages.Unlock()
 	if mock.MessagesFunc == nil {
 		var (
-			messagesOut []store.Message
+			messagesOut []*store.Message
 			errOut      error
 		)
 		return messagesOut, errOut
@@ -86,11 +86,11 @@ func (mock *SourceMock) Messages(ctx context.Context, batch int64) ([]store.Mess
 //     len(mockedSource.MessagesCalls())
 func (mock *SourceMock) MessagesCalls() []struct {
 	Ctx   context.Context
-	Batch int64
+	Batch int
 } {
 	var calls []struct {
 		Ctx   context.Context
-		Batch int64
+		Batch int
 	}
 	mock.lockMessages.RLock()
 	calls = mock.calls.Messages
@@ -99,10 +99,10 @@ func (mock *SourceMock) MessagesCalls() []struct {
 }
 
 // Published calls PublishedFunc.
-func (mock *SourceMock) Published(ctx context.Context, msg ...store.Message) error {
+func (mock *SourceMock) Published(ctx context.Context, msg ...*store.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg []store.Message
+		Msg []*store.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -124,11 +124,11 @@ func (mock *SourceMock) Published(ctx context.Context, msg ...store.Message) err
 //     len(mockedSource.PublishedCalls())
 func (mock *SourceMock) PublishedCalls() []struct {
 	Ctx context.Context
-	Msg []store.Message
+	Msg []*store.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg []store.Message
+		Msg []*store.Message
 	}
 	mock.lockPublished.RLock()
 	calls = mock.calls.Published
@@ -146,7 +146,7 @@ var _ Queue = &QueueMock{}
 //
 // 		// make and configure a mocked Queue
 // 		mockedQueue := &QueueMock{
-// 			PublishFunc: func(ctx context.Context, msg store.Message) error {
+// 			PublishFunc: func(ctx context.Context, msg *store.Message) error {
 // 				panic("mock out the Publish method")
 // 			},
 // 		}
@@ -157,7 +157,7 @@ var _ Queue = &QueueMock{}
 // 	}
 type QueueMock struct {
 	// PublishFunc mocks the Publish method.
-	PublishFunc func(ctx context.Context, msg store.Message) error
+	PublishFunc func(ctx context.Context, msg *store.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -166,17 +166,17 @@ type QueueMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg store.Message
+			Msg *store.Message
 		}
 	}
 	lockPublish sync.RWMutex
 }
 
 // Publish calls PublishFunc.
-func (mock *QueueMock) Publish(ctx context.Context, msg store.Message) error {
+func (mock *QueueMock) Publish(ctx context.Context, msg *store.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg store.Message
+		Msg *store.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -198,11 +198,11 @@ func (mock *QueueMock) Publish(ctx context.Context, msg store.Message) error {
 //     len(mockedQueue.PublishCalls())
 func (mock *QueueMock) PublishCalls() []struct {
 	Ctx context.Context
-	Msg store.Message
+	Msg *store.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg store.Message
+		Msg *store.Message
 	}
 	mock.lockPublish.RLock()
 	calls = mock.calls.Publish

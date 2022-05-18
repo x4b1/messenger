@@ -13,9 +13,9 @@ import (
 func TestPublishErrors(t *testing.T) {
 	t.Parallel()
 
-	msg1 := store.Message{ID: "cfa4d3b8-721d-4ce4-b71f-a84cab3e4471"}
+	msg1 := &store.Message{ID: "cfa4d3b8-721d-4ce4-b71f-a84cab3e4471"}
 	err1 := errors.New("publishing error 1")
-	msg2 := store.Message{ID: "e0932677-a085-4b18-bfce-ee0699e01c4c"}
+	msg2 := &store.Message{ID: "e0932677-a085-4b18-bfce-ee0699e01c4c"}
 	err2 := errors.New("publishing error 2")
 
 	errs := publish.NewErrors()
