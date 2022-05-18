@@ -10,16 +10,16 @@ import (
 	"sync"
 )
 
-// Ensure, that SQSClientMock does implement publishsqs.SQSClient.
+// Ensure, that ClientMock does implement publishsqs.Client.
 // If this is not the case, regenerate this file with moq.
-var _ publishsqs.SQSClient = &SQSClientMock{}
+var _ publishsqs.Client = &ClientMock{}
 
-// SQSClientMock is a mock implementation of publishsqs.SQSClient.
+// ClientMock is a mock implementation of publishsqs.Client.
 //
-// 	func TestSomethingThatUsesSQSClient(t *testing.T) {
+// 	func TestSomethingThatUsesClient(t *testing.T) {
 //
-// 		// make and configure a mocked publishsqs.SQSClient
-// 		mockedSQSClient := &SQSClientMock{
+// 		// make and configure a mocked publishsqs.Client
+// 		mockedClient := &ClientMock{
 // 			GetQueueUrlFunc: func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 // 				panic("mock out the GetQueueUrl method")
 // 			},
@@ -28,11 +28,11 @@ var _ publishsqs.SQSClient = &SQSClientMock{}
 // 			},
 // 		}
 //
-// 		// use mockedSQSClient in code that requires publishsqs.SQSClient
+// 		// use mockedClient in code that requires publishsqs.Client
 // 		// and then make assertions.
 //
 // 	}
-type SQSClientMock struct {
+type ClientMock struct {
 	// GetQueueUrlFunc mocks the GetQueueUrl method.
 	GetQueueUrlFunc func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error)
 
@@ -65,7 +65,7 @@ type SQSClientMock struct {
 }
 
 // GetQueueUrl calls GetQueueUrlFunc.
-func (mock *SQSClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
+func (mock *ClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		Params *servicesqs.GetQueueUrlInput
@@ -90,8 +90,8 @@ func (mock *SQSClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.G
 
 // GetQueueUrlCalls gets all the calls that were made to GetQueueUrl.
 // Check the length with:
-//     len(mockedSQSClient.GetQueueUrlCalls())
-func (mock *SQSClientMock) GetQueueUrlCalls() []struct {
+//     len(mockedClient.GetQueueUrlCalls())
+func (mock *ClientMock) GetQueueUrlCalls() []struct {
 	Ctx    context.Context
 	Params *servicesqs.GetQueueUrlInput
 	OptFns []func(*servicesqs.Options)
@@ -108,7 +108,7 @@ func (mock *SQSClientMock) GetQueueUrlCalls() []struct {
 }
 
 // SendMessage calls SendMessageFunc.
-func (mock *SQSClientMock) SendMessage(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
+func (mock *ClientMock) SendMessage(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
 	callInfo := struct {
 		Ctx    context.Context
 		Params *servicesqs.SendMessageInput
@@ -133,8 +133,8 @@ func (mock *SQSClientMock) SendMessage(ctx context.Context, params *servicesqs.S
 
 // SendMessageCalls gets all the calls that were made to SendMessage.
 // Check the length with:
-//     len(mockedSQSClient.SendMessageCalls())
-func (mock *SQSClientMock) SendMessageCalls() []struct {
+//     len(mockedClient.SendMessageCalls())
+func (mock *ClientMock) SendMessageCalls() []struct {
 	Ctx    context.Context
 	Params *servicesqs.SendMessageInput
 	OptFns []func(*servicesqs.Options)

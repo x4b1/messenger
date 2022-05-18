@@ -12,10 +12,10 @@ import (
 	"github.com/xabi93/messenger/store"
 )
 
-//go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . SQSClient
+//go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
 
-// SQSClient defines the AWS SQS methods used by the Publisher. This is used for testing pourpouses.
-type SQSClient interface {
+// Client defines the AWS SQS methods used by the Publisher. This is used for testing pourpouses.
+type Client interface {
 	GetQueueUrl(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
 	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
 }
@@ -43,7 +43,7 @@ func Open(ctx context.Context, awsOpts sqs.Options, queue string, opts ...Option
 }
 
 // New returns a new Publisher instance.
-func New(ctx context.Context, svc SQSClient, queue string, opts ...Option) (*Publisher, error) {
+func New(ctx context.Context, svc Client, queue string, opts ...Option) (*Publisher, error) {
 	q, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: aws.String(queue)})
 	if err != nil {
 		return nil, fmt.Errorf("getting queue url: %w", err)
@@ -66,7 +66,7 @@ var _ publish.Queue = &Publisher{}
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
 	// sqs service instance where are going to publish messages
-	svc SQSClient
+	svc Client
 	// queue url where are going to publish messages
 	queue string
 	// meta property of the message to use as ordering key
@@ -76,7 +76,7 @@ type Publisher struct {
 }
 
 // Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg store.Message) error {
+func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 	att := make(map[string]types.MessageAttributeValue, len(msg.Metadata))
 	for k, v := range msg.Metadata {
 		att[k] = types.MessageAttributeValue{
@@ -103,7 +103,7 @@ func (p Publisher) Publish(ctx context.Context, msg store.Message) error {
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg store.Message) *string {
+func (p Publisher) orderingKey(msg *store.Message) *string {
 	key, ok := msg.Metadata[p.metaOrdKey]
 	if ok {
 		return aws.String(key)

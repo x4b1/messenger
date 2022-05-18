@@ -1,0 +1,423 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+# GNU Make 4.3
+# Built for x86_64-apple-darwin20.1.0
+# Copyright (C) 1988-2020 Free Software Foundation, Inc.
+# License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# Make data base, printed on Wed May 18 15:21:00 2022
+
+# Variables
+
+# environment
+LC_ALL = C
+# environment
+FNM_DIR = /Users/gopher/.fnm
+# environment
+STARSHIP_SESSION_KEY = 2738027403128054
+# environment
+TMPDIR = /var/folders/7q/fhdkb9zs0sl3p2zxk_zby1gr0000gn/T/
+# environment
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.42010654.42010660.FF04EF82-A749-422F-B1F0-30800B72132E
+# environment
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/7q/fhdkb9zs0sl3p2zxk_zby1gr0000gn/T/vscode-ipc-2ba7d41f-2eca-4e4f-9a9a-08e8cd91d885.sock
+# environment
+VSCODE_CWD = /Users/gopher/projects/xabi/messenger
+# default
+MAKE_COMMAND := make
+# environment
+GOPATH = /Users/gopher/go
+# environment
+__CFBundleIdentifier = com.microsoft.VSCode
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# default
+.VARIABLES := 
+# environment
+WARP_USE_SSH_WRAPPER = 1
+# environment
+COMMAND_MODE = unix2003
+# environment
+PWD = /Users/gopher/projects/xabi/messenger
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# environment
+LSCOLORS = Gxfxcxdxbxegedabagacad
+# makefile (from 'Makefile', line 3)
+DOCKER_REGISTRY = 
+# environment
+HISTTIMEFORMAT = %d/%m/%y %T 
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# environment
+VSCODE_LOG_STACK = false
+# automatic
+%F = $(notdir $%)
+# environment
+VSCODE_CODE_CACHE_PATH = /Users/gopher/Library/Application Support/Code/CachedData/da15b6fd3ef856477bf6f4fb29ba1b7af717770d
+# environment
+FNM_VERSION_FILE_STRATEGY = local
+# environment
+LANG = C
+# default
+.LOADED := 
+# default
+.INCLUDE_DIRS = /usr/local/Cellar/make/4.3/include /usr/local/include
+# environment
+FNM_NODE_DIST_MIRROR = https://nodejs.org/dist
+# environment
+__CF_USER_TEXT_ENCODING = 0x1F5:0x0:0x0
+# makefile (from 'Makefile', line 8)
+CYAN := [36m
+# makefile
+MAKEFLAGS = pqrR
+# environment
+KUBECONFIG = /Users/gopher/.kube/config
+# environment
+FNM_LOGLEVEL = info
+# makefile
+CURDIR := /Users/gopher/projects/xabi/messenger
+# environment
+VSCODE_PIPE_LOGGING = true
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# makefile (from 'Makefile', line 2)
+VERSION = 0.0.0
+# environment
+FNM_ARCH = x64
+# environment
+MFLAGS = -pqrR
+# environment
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.s34ZJsxIiE/Listeners
+# default
+.SHELLFLAGS := -c
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# makefile (from 'Makefile', line 1)
+MAKEFILE_LIST := Makefile
+# automatic
+@F = $(notdir $@)
+# environment
+VSCODE_VERBOSE_LOGGING = true
+# environment
+VSCODE_PID = 4992
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# environment
+WARP_IS_LOCAL_SHELL_SESSION = 1
+# environment
+WARP_PS1 = $(/usr/local/bin/starship prompt --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="$STARSHIP_CMD_STATUS" --pipestatus="${STARSHIP_PIPE_STATUS[*]}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")
+# automatic
+*F = $(notdir $*)
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en-gb","availableLanguages":{},"_languagePackSupport":true}
+# default
+MAKE_HOST := x86_64-apple-darwin20.1.0
+# makefile
+SHELL = /bin/sh
+# default
+MAKECMDGOALS := all
+# environment
+GITHUB_TOKEN = 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
+# environment
+SHLVL = 3
+# environment
+MAKELEVEL := 0
+# default
+MAKE = $(MAKE_COMMAND)
+# environment
+LaunchInstanceID = F4F6C4D2-30D5-4361-96BD-F9B78833BB8B
+# environment
+PATH = /Users/gopher/Library/Caches/fnm_multishells/779_1652857290509/bin:/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin:/usr/local/opt/postgresql/bin:/Users/gopher/bin:/Users/gopher/go/bin:/opt/homebrew/bin:/usr/local/bin:/usr/local/sbin:/bin:/usr/bin:/usr/sbin:/sbin
+# default
+MAKEFILES := 
+# automatic
+^F = $(notdir $^)
+# makefile (from 'Makefile', line 6)
+YELLOW := [33m
+# environment
+GOBIN = /Users/gopher/go/bin
+# environment
+XDG_CONFIG_HOME = /Users/gopher/Library/Application\ Support
+# environment
+DOTFILES_PATH = /Users/gopher/.dotfiles
+# environment
+FNM_MULTISHELL_PATH = /Users/gopher/Library/Caches/fnm_multishells/779_1652857290509
+# environment
+VSCODE_LOG_NATIVE = false
+# environment
+TERM_PROGRAM = WarpTerminal
+# makefile (from 'Makefile', line 5)
+GREEN := [32m
+# automatic
+?F = $(notdir $?)
+# environment
+SECURITYSESSIONID = 186a5
+# automatic
++F = $(notdir $+)
+# environment
+LESS = -R
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = undefined
+# 'override' directive
+GNUMAKEFLAGS := 
+# makefile (from 'Makefile', line 1)
+BINARY_NAME = messenger
+# environment
+LOGNAME = gopher
+# environment
+XPC_FLAGS = 0x0
+# makefile
+.DEFAULT_GOAL := default
+# environment
+USER = gopher
+# default
+MAKE_VERSION := 4.3
+# environment
+CLOUDSDK_HOME = /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk
+# 'override' directive
+.SHELLSTATUS := 0
+# environment
+STARSHIP_SHELL = zsh
+# environment
+PAGER = less
+# environment
+_ = /Users/gopher/bin/make
+# makefile (from 'Makefile', line 9)
+RESET := (B[m
+# environment
+COLORTERM = truecolor
+# environment
+LC_CTYPE = UTF-8
+# environment
+GOMODCACHE = /Users/gopher/go/pkg/mod
+# environment
+CONDA_CHANGEPS1 = false
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# environment
+HOME = /Users/gopher
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# environment
+TERM = xterm-256color
+# environment
+VSCODE_IPC_HOOK = /Users/gopher/Library/Application Support/Code/1.67.1-main.sock
+# environment
+GOPROXY = https://proxy.golang.org,direct
+# default
+.RECIPEPREFIX := 
+# automatic
+<F = $(notdir $<)
+# default
+SUFFIXES := 
+# environment
+VSCODE_CLI = 1
+# environment
+ELECTRON_NO_ATTACH_CONSOLE = 1
+# default
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink load
+# environment
+TERM_PROGRAM_VERSION = v0.2022.05.09.09.06.stable_01
+# makefile (from 'Makefile', line 7)
+WHITE := [37m
+# variable set hash-table stats:
+# Load=109/1024=11%, Rehash=0, Collisions=6/171=4%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# . (device 16777225, inode 1693534): 20 files, no impossibilities.
+
+# 20 files, no impossibilities in 1 directories.
+
+# Implicit Rules
+
+# No implicit rules.
+
+# Files
+
+coverage: cov-report
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 34):
+	@go tool cover -func=report.cov
+
+lint-fix:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 48):
+	@golangci-lint run --fix
+
+lint:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 46):
+	@golangci-lint run
+
+generate:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 27):
+	@go generate ./...
+
+default: lint test
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+Makefile:
+#  Implicit rule search has been done.
+#  Last modified 2022-02-05 13:24:52.048648173
+#  File has been updated.
+#  Successfully updated.
+
+coverage-html: cov-report
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 37):
+	@go tool cover -html=report.cov
+
+tidy:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 22):
+	@go mod tidy -compat=1.17
+	cd tools && go mod tidy -compat=1.17
+
+cov-report:
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+ 
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 41):
+	@go test -count 1 ./... -coverpkg=./... -coverprofile=report.cov
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+all: help
+#  Phony target (prerequisite of .PHONY).
+#  Command line target.
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/13=0%
+
+help:
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: ''
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := help
+# automatic
+# * := 
+# automatic
+# < := 
+# automatic
+# + := 
+# automatic
+# % := 
+# automatic
+# ^ := 
+# automatic
+# ? := 
+# automatic
+# | := 
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=5/21=24%
+#  recipe to execute (from 'Makefile', line 61):
+	@echo ''
+	@echo 'Usage:'
+	@echo '  ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'
+	@echo ''
+	@echo 'Targets:'
+	@awk 'BEGIN {FS = ":.*?## "} { \
+		if (/^[a-zA-Z_-]+:.*?##.*$$/) {printf "    ${YELLOW}%-20s${GREEN}%s${RESET}\n", $$1, $$2} \
+		else if (/^## .*$$/) {printf "  ${CYAN}%s${RESET}\n", substr($$1,4)} \
+		}' $(MAKEFILE_LIST)
+
+build:
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 53):
+	mkdir -p bin
+	@go build -o bin/$(BINARY_NAME) .
+
+test:
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 31):
+	@go test -race -v -count 1 ./...
+
+docker-build:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 57):
+	docker build --rm --tag $(BINARY_NAME) .
+
+tools:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 19):
+	cd tools && go install $(shell cd tools && go list -f '{{ join .Imports " " }}' -tags=tools)
+
+# Not a target:
+.SUFFIXES:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+.PHONY: all test build cov-report
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# files hash-table stats:
+# Load=18/1024=2%, Rehash=0, Collisions=1/45=2%
+# VPATH Search Paths
+
+# No 'vpath' search paths.
+
+# No general ('VPATH' variable) search path.
+
+# strcache buffers: 1 (0) / strings = 38 / storage = 342 B / avg = 9 B
+# current buf: size = 8162 B / used = 342 B / count = 38 / avg = 9 B
+
+# strcache performance: lookups = 70 / hit rate = 45%
+# hash-table stats:
+# Load=38/8192=0%, Rehash=0, Collisions=0/70=0%
+# Finished Make data base on Wed May 18 15:21:01 2022
+
+ 

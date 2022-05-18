@@ -1,0 +1,1 @@
+{"buildTargets":["all","build","cov-report","coverage","coverage-html","default","docker-build","generate","help","lint","lint-fix","test","tidy","tools"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}

@@ -27,7 +27,7 @@ const (
 
 var awsErr = errors.New("aws error")
 
-var msg = store.Message{
+var msg = &store.Message{
 	ID: uuid.Must(uuid.NewRandom()).String(),
 	Metadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
@@ -37,7 +37,7 @@ var msg = store.Message{
 }
 
 func TestFailsGettingQueueURL(t *testing.T) {
-	sqsMock := SQSClientMock{
+	sqsMock := ClientMock{
 		GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 			return nil, awsErr
 		},
@@ -50,7 +50,7 @@ func TestFailsGettingQueueURL(t *testing.T) {
 func TestPublish(t *testing.T) {
 	t.Run("fails", func(t *testing.T) {
 		ctx := context.Background()
-		sqsMock := SQSClientMock{
+		sqsMock := ClientMock{
 			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return &sqs.GetQueueUrlOutput{
 					QueueUrl: aws.String(queueURL),
@@ -121,7 +121,7 @@ func TestPublish(t *testing.T) {
 			require := require.New(t)
 			ctx := context.Background()
 
-			sqsMock := SQSClientMock{
+			sqsMock := ClientMock{
 				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return &sqs.GetQueueUrlOutput{
 						QueueUrl: aws.String(queueURL),
