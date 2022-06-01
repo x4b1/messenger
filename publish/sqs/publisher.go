@@ -37,6 +37,13 @@ func WithDefaultOrderingKey(key string) Option {
 	}
 }
 
+// WithFifoQueue setups the flag to use fifo queue.
+func WithFifoQueue(fifo bool) Option {
+	return func(p *Publisher) {
+		p.fifo = fifo
+	}
+}
+
 // Open returns a new Publisher instance.
 func Open(ctx context.Context, awsOpts sqs.Options, queue string, opts ...Option) (*Publisher, error) {
 	return New(ctx, sqs.New(awsOpts), queue, opts...)
@@ -73,6 +80,8 @@ type Publisher struct {
 	metaOrdKey string
 	// default ordering key in case not provided in message metadata
 	defaultOrdKey string
+	// flag to use fifo queue
+	fifo bool
 }
 
 // Publish publishes the given message to the pubsub topic.
@@ -88,7 +97,7 @@ func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 	_, err := p.svc.SendMessage(
 		ctx,
 		&sqs.SendMessageInput{
-			MessageDeduplicationId: aws.String(msg.ID),
+			MessageDeduplicationId: p.messageDeduplication(msg),
 			MessageAttributes:      att,
 			MessageBody:            aws.String(string(msg.Payload)),
 			QueueUrl:               aws.String(p.queue),
@@ -101,9 +110,22 @@ func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 	return nil
 }
 
+// messageDeduplication checks if the publisher is setup as fifo and returns the message deduplication id.
+func (p Publisher) messageDeduplication(msg *store.Message) *string {
+	if !p.fifo {
+		return nil
+	}
+
+	return aws.String(msg.ID)
+}
+
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
 func (p Publisher) orderingKey(msg *store.Message) *string {
+	if !p.fifo {
+		return nil
+	}
+
 	key, ok := msg.Metadata[p.metaOrdKey]
 	if ok {
 		return aws.String(key)

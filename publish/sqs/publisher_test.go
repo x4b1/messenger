@@ -75,7 +75,7 @@ func TestPublish(t *testing.T) {
 		{
 			name: "no ordering key",
 			expectedInput: &sqs.SendMessageInput{
-				MessageDeduplicationId: aws.String(msg.ID),
+				MessageDeduplicationId: nil,
 				MessageBody:            aws.String(string(msg.Payload)),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
@@ -87,7 +87,7 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "default ordering key",
-			opts: []publisher.Option{publisher.WithDefaultOrderingKey(defaultOrdKey)},
+			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID),
 				MessageBody:            aws.String(string(msg.Payload)),
@@ -101,7 +101,7 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
+			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID),
 				MessageBody:            aws.String(string(msg.Payload)),
