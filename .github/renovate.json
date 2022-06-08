@@ -7,5 +7,8 @@
     ],
     "reviewers": ["xabi93"],
     "schedule": [ "every weekend" ],
-    "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
+    "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+    "vulnerabilityAlerts": {
+        "enabled": true
+    }
 }
