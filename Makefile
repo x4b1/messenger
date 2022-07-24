@@ -1,6 +1,5 @@
-BINARY_NAME=messenger
-VERSION?=0.0.0
-DOCKER_REGISTRY?= #if set it should finished by /
+SHELL=/bin/bash -e -o pipefail
+PWD = $(shell pwd)
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
@@ -8,53 +7,58 @@ WHITE  := $(shell tput -Txterm setaf 7)
 CYAN   := $(shell tput -Txterm setaf 6)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: all test build
+.PHONY: all test tools
+set_opts: .PHONY
 
-default: lint test
+default: tidy tools
 
-all: help
-
-## Deps:
-tools: ## Install development tools
-	cd tools && go install $(shell cd tools && go list -f '{{ join .Imports " " }}' -tags=tools)
-
-tidy: ## Fix dependencies
-	@go mod tidy -compat=1.17
-	cd tools && go mod tidy -compat=1.17
-
-## Generate:
+## Tools:
 generate: ## Generate
+	$(call print-target)
 	@go generate ./...
 
-## Test:
-test: ## Run the tests of the project
-	@go test -race -v -count 1 ./...
+tools: ## go development tools
+	$(call print-target)
+	@cd tools && go install $(shell cd tools && go list -f '{{ join .Imports " " }}' -tags=tools)
 
-coverage: cov-report ## Displays coverage per func on cli
-	@go tool cover -func=report.cov
+download: ## Downloads the dependencies
+	$(call print-target)
+	@go mod download
 
-coverage-html: cov-report ## Displays the coverage results in the browser
-	@go tool cover -html=report.cov
-
-.PHONY: cov-report
-cov-report:
-	@go test -count 1 ./... -coverpkg=./... -coverprofile=report.cov
-
+tidy: ## Install development tools
+	$(call print-target)
+	@go mod tidy -compat=1.17
 
 ## Lint:
-lint: ## Lint go code
+lint: download ## Lint go code
+	$(call print-target)
 	@golangci-lint run
-lint-fix: ## Lint go code and try to fix issues
+lint-fix: download ## Lint go code and try to fix issues
+	$(call print-target)
 	@golangci-lint run --fix
 
+## Test:
+test: ## Runs all tests
+	$(call print-target)
+	@go test -count 1 ./...
 
-## Build:
-build: ## Build project and put the output binary in bin/
-	mkdir -p bin
-	@go build -o bin/$(BINARY_NAME) .
+coverage: out/report ## Displays coverage per func on cli
+	$(call print-target)
+	@go tool cover -func=out/cover.out
 
-docker-build: ## Use the dockerfile to build the container
-	docker build --rm --tag $(BINARY_NAME) .
+html-coverage: out/report ## Displays the coverage results in the browser
+	$(call print-target)
+	@go tool cover -html=out/cover.out
+
+.PHONY: out/report
+out/report:
+	$(call print-target)
+	@mkdir -p out
+	@go test -count 1 ./... -coverprofile=out/cover.out
+
+clean: ## Cleans up everything
+	$(call print-target)
+	@rm -rf out
 
 ## Help:
 help: ## Show this help.
@@ -67,3 +71,7 @@ help: ## Show this help.
 		if (/^[a-zA-Z_-]+:.*?##.*$$/) {printf "    ${YELLOW}%-20s${GREEN}%s${RESET}\n", $$1, $$2} \
 		else if (/^## .*$$/) {printf "  ${CYAN}%s${RESET}\n", substr($$1,4)} \
 		}' $(MAKEFILE_LIST)
+
+define print-target
+    @printf "Executing target: \033[36m$@\033[0m\n"
+endef
