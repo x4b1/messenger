@@ -1,23 +1,22 @@
-package sqs
+package sns
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 
 	"github.com/xabi93/messenger/publish"
 	"github.com/xabi93/messenger/store"
 )
 
-//go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
+//go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client
 
-// Client defines the AWS SQS methods used by the Publisher. This is used for testing purposes.
+// Client defines the AWS SNS methods used by the Publisher. This is used for testing purposes.
 type Client interface {
-	GetQueueUrl(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
-	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
+	Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error)
 }
 
 // Option is a function to set options to Publisher.
@@ -45,20 +44,15 @@ func WithFifoQueue(fifo bool) Option {
 }
 
 // Open returns a new Publisher instance.
-func Open(ctx context.Context, awsOpts sqs.Options, queue string, opts ...Option) (*Publisher, error) {
-	return New(ctx, sqs.New(awsOpts), queue, opts...)
+func Open(ctx context.Context, awsOpts sns.Options, topicARN string, opts ...Option) (*Publisher, error) {
+	return New(ctx, sns.New(awsOpts), topicARN, opts...)
 }
 
 // New returns a new Publisher instance.
-func New(ctx context.Context, svc Client, queue string, opts ...Option) (*Publisher, error) {
-	q, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: aws.String(queue)})
-	if err != nil {
-		return nil, fmt.Errorf("getting queue url: %w", err)
-	}
-
+func New(ctx context.Context, cli Client, topicARN string, opts ...Option) (*Publisher, error) {
 	p := Publisher{
-		svc:   svc,
-		queue: aws.ToString(q.QueueUrl),
+		cli:      cli,
+		topicARN: topicARN,
 	}
 
 	for _, opt := range opts {
@@ -72,10 +66,10 @@ var _ publish.Queue = &Publisher{}
 
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
-	// sqs service instance where are going to publish messages
-	svc Client
+	// sns service instance where are going to publish messages
+	cli Client
 	// queue url where are going to publish messages
-	queue string
+	topicARN string
 	// meta property of the message to use as ordering key
 	metaOrdKey string
 	// default ordering key in case not provided in message metadata
@@ -94,13 +88,13 @@ func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 		}
 	}
 
-	_, err := p.svc.SendMessage(
+	_, err := p.cli.Publish(
 		ctx,
-		&sqs.SendMessageInput{
+		&sns.PublishInput{
 			MessageDeduplicationId: p.messageDeduplication(msg),
 			MessageAttributes:      att,
-			MessageBody:            aws.String(string(msg.Payload)),
-			QueueUrl:               aws.String(p.queue),
+			Message:                aws.String(string(msg.Payload)),
+			TopicArn:               aws.String(p.topicARN),
 			MessageGroupId:         p.orderingKey(msg),
 		})
 	if err != nil {

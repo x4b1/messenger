@@ -1,4 +1,4 @@
-package sqs_test
+package sns_test
 
 import (
 	"context"
@@ -6,18 +6,17 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	publisher "github.com/xabi93/messenger/publish/sqs"
+	publisher "github.com/xabi93/messenger/publish/sns"
 	"github.com/xabi93/messenger/store"
 )
 
 const (
-	queue    = "test-queue"
-	queueURL = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+	topicARN = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
 
 	defaultOrdKey = "default-ordering"
 
@@ -36,32 +35,16 @@ var msg = &store.Message{
 	Payload: []byte("some message"),
 }
 
-func TestFailsGettingQueueURL(t *testing.T) {
-	sqsMock := ClientMock{
-		GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-			return nil, awsErr
-		},
-	}
-
-	_, err := publisher.New(context.Background(), &sqsMock, queue)
-	require.ErrorIs(t, err, awsErr)
-}
-
 func TestPublish(t *testing.T) {
 	t.Run("fails", func(t *testing.T) {
 		ctx := context.Background()
-		sqsMock := ClientMock{
-			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-				return &sqs.GetQueueUrlOutput{
-					QueueUrl: aws.String(queueURL),
-				}, nil
-			},
-			SendMessageFunc: func(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+		snsMock := ClientMock{
+			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
 				return nil, awsErr
 			},
 		}
 
-		pub, err := publisher.New(ctx, &sqsMock, queue)
+		pub, err := publisher.New(ctx, &snsMock, topicARN)
 		require.NoError(t, err)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), awsErr)
@@ -69,48 +52,48 @@ func TestPublish(t *testing.T) {
 
 	for _, tc := range []struct {
 		name          string
-		expectedInput *sqs.SendMessageInput
+		expectedInput *sns.PublishInput
 		opts          []publisher.Option
 	}{
 		{
 			name: "no ordering key",
-			expectedInput: &sqs.SendMessageInput{
+			expectedInput: &sns.PublishInput{
 				MessageDeduplicationId: nil,
-				MessageBody:            aws.String(string(msg.Payload)),
+				Message:                aws.String(string(msg.Payload)),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
-				QueueUrl: aws.String(queueURL),
+				TopicArn: aws.String(topicARN),
 			},
 		},
 		{
 			name: "default ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
-			expectedInput: &sqs.SendMessageInput{
+			expectedInput: &sns.PublishInput{
 				MessageDeduplicationId: aws.String(msg.ID),
-				MessageBody:            aws.String(string(msg.Payload)),
+				Message:                aws.String(string(msg.Payload)),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
-				QueueUrl: aws.String(queueURL),
+				TopicArn: aws.String(topicARN),
 			},
 		},
 		{
 			name: "metadata ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
-			expectedInput: &sqs.SendMessageInput{
+			expectedInput: &sns.PublishInput{
 				MessageDeduplicationId: aws.String(msg.ID),
-				MessageBody:            aws.String(string(msg.Payload)),
+				Message:                aws.String(string(msg.Payload)),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
-				QueueUrl: aws.String(queueURL),
+				TopicArn: aws.String(topicARN),
 			},
 		},
 	} {
@@ -121,21 +104,15 @@ func TestPublish(t *testing.T) {
 			require := require.New(t)
 			ctx := context.Background()
 
-			sqsMock := ClientMock{
-				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-					return &sqs.GetQueueUrlOutput{
-						QueueUrl: aws.String(queueURL),
-					}, nil
-				},
-			}
+			snsMock := ClientMock{}
 
-			pub, err := publisher.New(ctx, &sqsMock, queue, tc.opts...)
+			pub, err := publisher.New(ctx, &snsMock, topicARN, tc.opts...)
 			require.NoError(err)
 
 			require.NoError(pub.Publish(ctx, msg))
 
-			require.Len(sqsMock.SendMessageCalls(), 1)
-			require.Equal(sqsMock.SendMessageCalls()[0].Params, tc.expectedInput)
+			require.Len(snsMock.PublishCalls(), 1)
+			require.Equal(snsMock.PublishCalls()[0].Params, tc.expectedInput)
 		})
 	}
 }
