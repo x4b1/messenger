@@ -24,7 +24,7 @@ const (
 	orderingValue = "value-1"
 )
 
-var awsErr = errors.New("aws error")
+var errAws = errors.New("aws error")
 
 var msg = &store.Message{
 	ID: uuid.Must(uuid.NewRandom()).String(),
@@ -40,14 +40,14 @@ func TestPublish(t *testing.T) {
 		ctx := context.Background()
 		snsMock := ClientMock{
 			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
-				return nil, awsErr
+				return nil, errAws
 			},
 		}
 
 		pub, err := publisher.New(ctx, &snsMock, topicARN)
 		require.NoError(t, err)
 
-		require.ErrorIs(t, pub.Publish(ctx, msg), awsErr)
+		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
 	})
 
 	for _, tc := range []struct {
@@ -101,18 +101,18 @@ func TestPublish(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			require := require.New(t)
+			r := require.New(t)
 			ctx := context.Background()
 
 			snsMock := ClientMock{}
 
 			pub, err := publisher.New(ctx, &snsMock, topicARN, tc.opts...)
-			require.NoError(err)
+			r.NoError(err)
 
-			require.NoError(pub.Publish(ctx, msg))
+			r.NoError(pub.Publish(ctx, msg))
 
-			require.Len(snsMock.PublishCalls(), 1)
-			require.Equal(snsMock.PublishCalls()[0].Params, tc.expectedInput)
+			r.Len(snsMock.PublishCalls(), 1)
+			r.Equal(snsMock.PublishCalls()[0].Params, tc.expectedInput)
 		})
 	}
 }

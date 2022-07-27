@@ -19,10 +19,10 @@ linters-settings:
       - style
     disabled-checks:
       - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - ifElseChain
       - octalLiteral
       - whyNoLint
-      - wrapperFunc
+      - hugeParam
+      - unnecessaryDefer
   gocyclo:
     min-complexity: 15
   gci:
@@ -112,13 +112,11 @@ issues:
         - gosec
         - noctx
         - funlen
+        - goerr113
+        - lll
     - path: _mock\.go
       linters:
         - revive
-    # https://github.com/go-critic/go-critic/issues/926
-    - linters:
-        - gocritic
-      text: "unnecessaryDefer:"
 
 run:
   issues-exit-code: 1

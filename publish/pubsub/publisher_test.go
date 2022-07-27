@@ -41,7 +41,6 @@ func initPubsub(ctx context.Context, t *testing.T) (*pstest.Server, *pubsub.Topi
 
 func TestPublishWithNoOrderingKey(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	ctx := context.Background()
 
 	srv, topic := initPubsub(ctx, t)
@@ -52,18 +51,17 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 		Payload:  []byte("some message"),
 	}
 
-	require.NoError(pubsubpublish.New(topic).Publish(ctx, m))
+	require.NoError(t, pubsubpublish.New(topic).Publish(ctx, m))
 
 	msgs := srv.Messages()
-	require.Len(msgs, 1)
-	require.Equal(m.Payload, msgs[0].Data)
-	require.Equal(m.Metadata, msgs[0].Attributes)
-	require.Empty(msgs[0].OrderingKey)
+	require.Len(t, msgs, 1)
+	require.Equal(t, m.Payload, msgs[0].Data)
+	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Empty(t, msgs[0].OrderingKey)
 }
 
 func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	ctx := context.Background()
 
 	srv, topic := initPubsub(ctx, t)
@@ -75,18 +73,17 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	}
 
 	ordKey := "default-ord-key"
-	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
+	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
-	require.Len(msgs, 1)
-	require.Equal(m.Payload, msgs[0].Data)
-	require.Equal(m.Metadata, msgs[0].Attributes)
-	require.Equal(ordKey, msgs[0].OrderingKey)
+	require.Len(t, msgs, 1)
+	require.Equal(t, m.Payload, msgs[0].Data)
+	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Equal(t, ordKey, msgs[0].OrderingKey)
 }
 
 func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	ctx := context.Background()
 
 	srv, topic := initPubsub(ctx, t)
@@ -100,11 +97,11 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 		Payload:  []byte("some message"),
 	}
 
-	require.NoError(pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
+	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
-	require.Len(msgs, 1)
-	require.Equal(m.Payload, msgs[0].Data)
-	require.Equal(map[string]string(m.Metadata), msgs[0].Attributes)
-	require.Equal(orderingValue, msgs[0].OrderingKey)
+	require.Len(t, msgs, 1)
+	require.Equal(t, m.Payload, msgs[0].Data)
+	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Equal(t, orderingValue, msgs[0].OrderingKey)
 }

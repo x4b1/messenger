@@ -23,19 +23,29 @@ var (
 // MessagesTable is the table name that will be used if no other table name provided.
 const MessagesTable = "messages"
 
-type Config struct {
+type config struct {
 	Table  string
 	Schema string
 }
 
+// Option is a function to set options to Publisher.
+type Option func(*Store)
+
+// WithMetaOrderingKey setups the metadata key to get the ordering key.
+func WithMetaOrderingKey(key string) Option {
+	return func(p *Store) {
+		p.metaOrdKey = key
+	}
+}
+
 // Open returns a pgx source connected to database connection string with config.
-func Open(ctx context.Context, connStr string, conf Config) (*Store, error) {
+func Open(ctx context.Context, connStr string, opts ...Option) (*Store, error) {
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
 		return nil, err
 	}
 
-	return WithInstance(ctx, conn, conf)
+	return WithInstance(ctx, conn, opts...)
 }
 
 // Conn defines the pgx interface to be used by the store.
@@ -47,10 +57,14 @@ type Conn interface {
 }
 
 // WithInstance returns Store source initialised with the given connection instance and config.
-func WithInstance(ctx context.Context, conn Conn, config Config) (*Store, error) {
+func WithInstance(ctx context.Context, conn Conn, opts ...Option) (*Store, error) {
 	var err error
 	if err := conn.Ping(ctx); err != nil {
 		return nil, err
+	}
+
+	conf := config{
+		Table: MessagesTable,
 	}
 
 	if config.Schema == "" {

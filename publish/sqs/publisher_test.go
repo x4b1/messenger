@@ -25,7 +25,7 @@ const (
 	orderingValue = "value-1"
 )
 
-var awsErr = errors.New("aws error")
+var errAws = errors.New("aws error")
 
 var msg = &store.Message{
 	ID: uuid.Must(uuid.NewRandom()).String(),
@@ -39,12 +39,12 @@ var msg = &store.Message{
 func TestFailsGettingQueueURL(t *testing.T) {
 	sqsMock := ClientMock{
 		GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-			return nil, awsErr
+			return nil, errAws
 		},
 	}
 
 	_, err := publisher.New(context.Background(), &sqsMock, queue)
-	require.ErrorIs(t, err, awsErr)
+	require.ErrorIs(t, err, errAws)
 }
 
 func TestPublish(t *testing.T) {
@@ -57,14 +57,14 @@ func TestPublish(t *testing.T) {
 				}, nil
 			},
 			SendMessageFunc: func(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
-				return nil, awsErr
+				return nil, errAws
 			},
 		}
 
 		pub, err := publisher.New(ctx, &sqsMock, queue)
 		require.NoError(t, err)
 
-		require.ErrorIs(t, pub.Publish(ctx, msg), awsErr)
+		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
 	})
 
 	for _, tc := range []struct {
@@ -118,7 +118,7 @@ func TestPublish(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			require := require.New(t)
+			r := require.New(t)
 			ctx := context.Background()
 
 			sqsMock := ClientMock{
@@ -130,12 +130,12 @@ func TestPublish(t *testing.T) {
 			}
 
 			pub, err := publisher.New(ctx, &sqsMock, queue, tc.opts...)
-			require.NoError(err)
+			r.NoError(err)
 
-			require.NoError(pub.Publish(ctx, msg))
+			r.NoError(pub.Publish(ctx, msg))
 
-			require.Len(sqsMock.SendMessageCalls(), 1)
-			require.Equal(sqsMock.SendMessageCalls()[0].Params, tc.expectedInput)
+			r.Len(sqsMock.SendMessageCalls(), 1)
+			r.Equal(sqsMock.SendMessageCalls()[0].Params, tc.expectedInput)
 		})
 	}
 }
