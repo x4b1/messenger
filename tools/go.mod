@@ -1,9 +1,9 @@
 module github.com/xabi93/messenger/tools
 
-go 1.18
+go 1.19
 
 require (
-	github.com/golangci/golangci-lint v1.47.2
+	github.com/golangci/golangci-lint v1.47.3
 	github.com/matryer/moq v0.2.7
 )
 

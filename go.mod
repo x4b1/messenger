@@ -1,17 +1,17 @@
 module github.com/xabi93/messenger
 
-go 1.18
+go 1.19
 
 require (
 	cloud.google.com/go/pubsub v1.24.0
-	github.com/aws/aws-sdk-go-v2 v1.16.7
-	github.com/aws/aws-sdk-go-v2/service/sns v1.17.9
+	github.com/aws/aws-sdk-go-v2 v1.16.8
+	github.com/aws/aws-sdk-go-v2/service/sns v1.17.10
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgconn v1.12.1
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/stretchr/testify v1.8.0
-	google.golang.org/api v0.88.0
+	google.golang.org/api v0.91.0
 	google.golang.org/grpc v1.48.0
 )
 
@@ -24,7 +24,7 @@ require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.14 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.19.0
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.19.1
 	github.com/aws/smithy-go v1.12.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
