@@ -1,14 +1,15 @@
 {
     "extends": [
       "config:base",
+      "group:all",
       ":semanticCommits",
-      ":semanticCommitTypeAll(chore)",
-      "group:allNonMajor"
+      ":semanticCommitTypeAll(chore)"
+    ],
+    "timezone": "Europe/Madrid",
+    "schedule": [
+      "every weekend"
     ],
     "reviewers": ["xabi93"],
-    "schedule": [ "every weekend" ],
-    "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
-    "vulnerabilityAlerts": {
-        "enabled": true
-    }
+    "dependencyDashboard": false,
+    "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
 }
