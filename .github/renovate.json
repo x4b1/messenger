@@ -9,6 +9,12 @@
     "schedule": [
       "every weekend"
     ],
+    "packageRules": [
+        {
+            "matchPackagePatterns": ["*"],
+            "automerge": true
+        }
+    ],
     "reviewers": ["xabi93"],
     "dependencyDashboard": false,
     "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
