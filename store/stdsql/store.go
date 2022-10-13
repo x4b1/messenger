@@ -1,15 +1,15 @@
-package pgx
+package stdsql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4"
+	_ "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/xabi93/messenger"
 	"github.com/xabi93/messenger/store"
@@ -47,26 +47,18 @@ func WithTableName(t string) Option {
 
 // Open returns a pgx source connected to database connection string with config.
 func Open(ctx context.Context, connStr string, opts ...Option) (*Store, error) {
-	conn, err := pgx.Connect(ctx, connStr)
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("postgres connect parsing conf: %w", err)
 	}
 
-	return WithInstance(ctx, conn, opts...)
-}
-
-// Conn defines the pgx interface to be used by the store.
-type Conn interface {
-	Ping(ctx context.Context) error
-	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
-	executor
+	return WithInstance(ctx, db, opts...)
 }
 
 // WithInstance returns Store source initialised with the given connection instance and config.
-func WithInstance(ctx context.Context, conn Conn, opts ...Option) (*Store, error) {
+func WithInstance(ctx context.Context, conn *sql.DB, opts ...Option) (*Store, error) {
 	var err error
-	if err := conn.Ping(ctx); err != nil {
+	if err := conn.PingContext(ctx); err != nil {
 		return nil, err
 	}
 
@@ -102,23 +94,23 @@ func WithInstance(ctx context.Context, conn Conn, opts ...Option) (*Store, error
 
 // Store is the instance to store and retrieve the messages in PostgreSQL database.
 type Store struct {
-	conn Conn
+	conn *sql.DB
 
 	config config
 }
 
 type executor interface {
-	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
+	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
 }
 
 // Store saves messages.
-func (p Store) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) error {
+func (p Store) Store(ctx context.Context, tx *sql.Tx, msgs ...messenger.Message) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 4
 	valueArgs := make([]interface{}, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
 		valueStr[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)", i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4)
-		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), msg.Metadata(), msg.Payload(), time.Now())
+		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), metadata(msg.Metadata()), msg.Payload(), time.Now())
 	}
 
 	stmt := fmt.Sprintf(
@@ -132,14 +124,14 @@ func (p Store) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) 
 	if tx != nil {
 		exec = tx
 	}
-	_, err := exec.Exec(ctx, stmt, valueArgs...)
+	_, err := exec.ExecContext(ctx, stmt, valueArgs...)
 
 	return err
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
 func (p Store) Messages(ctx context.Context, batch int) ([]*store.Message, error) {
-	rows, err := p.conn.Query(
+	rows, err := p.conn.QueryContext(
 		ctx,
 		fmt.Sprintf(
 			`SELECT id, metadata, payload, created_at FROM %q.%q WHERE published = false ORDER BY created_at ASC LIMIT $1`,
@@ -156,9 +148,11 @@ func (p Store) Messages(ctx context.Context, batch int) ([]*store.Message, error
 	msgs := make([]*store.Message, 0, batch)
 	for rows.Next() {
 		msg := &store.Message{}
-		if err := rows.Scan(&msg.ID, &msg.Metadata, &msg.Payload, &msg.At); err != nil {
+		metadata := metadata(msg.Metadata)
+		if err := rows.Scan(&msg.ID, &metadata, &msg.Payload, &msg.At); err != nil {
 			return nil, err
 		}
+		msg.Metadata = metadata
 		msgs = append(msgs, msg)
 	}
 	if err := rows.Err(); err != nil {
@@ -175,7 +169,7 @@ func (p Store) Published(ctx context.Context, msgs ...*store.Message) error {
 		ids[i] = msg.ID
 	}
 
-	_, err := p.conn.Exec(
+	_, err := p.conn.ExecContext(
 		ctx,
 		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, p.config.Schema, p.config.Table),
 		ids,
@@ -188,7 +182,7 @@ func (p Store) Published(ctx context.Context, msgs ...*store.Message) error {
 func (p *Store) ensureTable(ctx context.Context) error {
 	// Check if table already exists, we cannot use `CREATE TABLE IF NOT EXISTS`,
 	// maybe the user does not have permissions to CREATE and it will fail
-	row := p.conn.QueryRow(
+	row := p.conn.QueryRowContext(
 		ctx,
 		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
 		p.config.Schema,
@@ -204,7 +198,7 @@ func (p *Store) ensureTable(ctx context.Context) error {
 		return nil
 	}
 
-	_, err := p.conn.Exec(
+	_, err := p.conn.ExecContext(
 		ctx,
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS "%s"."%s" (
 			id UUID PRIMARY KEY,
@@ -225,9 +219,9 @@ func (p *Store) ensureTable(ctx context.Context) error {
 }
 
 // currentSchema returns the connection schema is using.
-func currentSchema(ctx context.Context, db Conn) (string, error) {
+func currentSchema(ctx context.Context, db *sql.DB) (string, error) {
 	var schemaName string
-	if err := db.QueryRow(ctx, `SELECT CURRENT_SCHEMA()`).Scan(&schemaName); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT CURRENT_SCHEMA()`).Scan(&schemaName); err != nil {
 		return "", err
 	}
 
