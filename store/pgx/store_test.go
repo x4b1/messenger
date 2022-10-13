@@ -1,4 +1,4 @@
-// nolint: paralleltest // need connection pool in order to run tests in parallel
+//nolint: paralleltest // need connection pool in order to run tests in parallel
 // TODO: run tests in parallel
 package pgx_test
 

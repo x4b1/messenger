@@ -3,7 +3,7 @@ package store
 
 import "time"
 
-// Message represents retrieved from store and to be published to the bus
+// Message represents retrieved from store and to be published to the bus.
 type Message struct {
 	ID       string
 	Payload  []byte
