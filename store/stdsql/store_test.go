@@ -1,21 +1,20 @@
-// nolint: paralleltest // need connection pool in order to run tests in parallel
-// TODO: run tests in parallel
-package pgx_test
+package stdsql_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"testing"
 
-	"github.com/jackc/pgx/v4"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 
 	"github.com/xabi93/messenger"
-	store "github.com/xabi93/messenger/store/pgx"
+	store "github.com/xabi93/messenger/store/stdsql"
 )
 
 const (
@@ -23,12 +22,15 @@ const (
 	password = "test"
 )
 
-var conn *pgx.Conn
+var (
+	db    *sql.DB
+	dbURL string
+)
 
 func TestMain(m *testing.M) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
+		log.Fatalf("Could not dbect to docker: %s", err)
 	}
 
 	postgresContainer, err := pool.RunWithOptions(&dockertest.RunOptions{
@@ -50,17 +52,18 @@ func TestMain(m *testing.M) {
 
 	postgresContainer.Expire(60)
 
-	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	dbURL = fmt.Sprintf("postgres://%s:%s@localhost:%s/postgres", user, password, postgresContainer.GetPort("5432/tcp"))
+
+	// exponential backoff-retry, because the application in the container might not be ready to accept dbections yet
 	if err := pool.Retry(func() error {
-		var err error
-		conn, err = pgx.Connect(context.Background(), fmt.Sprintf("postgres://%s:%s@localhost:%s/postgres", user, password, postgresContainer.GetPort("5432/tcp")))
+		db, err = sql.Open("pgx", dbURL)
 		if err != nil {
 			return err
 		}
 
-		return conn.Ping(context.Background())
+		return db.PingContext(context.Background())
 	}); err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
+		log.Fatalf("Could not dbect to docker: %s", err)
 	}
 
 	code := m.Run()
@@ -75,7 +78,7 @@ func TestMain(m *testing.M) {
 func TestOpen(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.Open(context.Background(), conn.Config().ConnString())
+	_, err := store.Open(context.Background(), dbURL)
 	require.NoError(err)
 }
 
@@ -84,9 +87,9 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithInstance(context.Background(), conn, store.WithTableName(table))
+	_, err := store.WithInstance(context.Background(), db, store.WithTableName(table))
 	require.NoError(err)
-	row := conn.QueryRow(
+	row := db.QueryRowContext(
 		context.Background(),
 		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
 		"public",
@@ -101,7 +104,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), conn, store.WithSchema("custom"))
+	_, err := store.WithInstance(context.Background(), db, store.WithSchema("custom"))
 
 	require.Error(err)
 }
@@ -109,10 +112,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), conn)
+	_, err := store.WithInstance(context.Background(), db)
 	require.NoError(err)
 
-	_, err = store.WithInstance(context.Background(), conn)
+	_, err = store.WithInstance(context.Background(), db)
 	require.NoError(err)
 }
 
@@ -122,7 +125,7 @@ func TestStorePublishMessages(t *testing.T) {
 		batch     = 10
 	)
 
-	pg, err := store.WithInstance(context.Background(), conn)
+	pg, err := store.WithInstance(context.Background(), db)
 	require.NoError(t, err)
 
 	t.Run("with transaction", func(t *testing.T) {
@@ -130,10 +133,10 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
 		})
 
-		tx, err := conn.Begin(ctx)
+		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(err)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
@@ -147,7 +150,7 @@ func TestStorePublishMessages(t *testing.T) {
 		}
 
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
-		require.NoError(tx.Commit(ctx))
+		require.NoError(tx.Commit())
 
 		msgs, err := pg.Messages(ctx, batch)
 		require.NoError(err)
@@ -173,7 +176,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
