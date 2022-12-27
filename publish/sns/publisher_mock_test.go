@@ -6,7 +6,7 @@ package sns_test
 import (
 	"context"
 	servicesns "github.com/aws/aws-sdk-go-v2/service/sns"
-	publishsns "github.com/xabi93/messenger/publish/sns"
+	publishsns "github.com/x4b1/messenger/publish/sns"
 	"sync"
 )
 

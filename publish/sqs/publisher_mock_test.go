@@ -6,7 +6,7 @@ package sqs_test
 import (
 	"context"
 	servicesqs "github.com/aws/aws-sdk-go-v2/service/sqs"
-	publishsqs "github.com/xabi93/messenger/publish/sqs"
+	publishsqs "github.com/x4b1/messenger/publish/sqs"
 	"sync"
 )
 

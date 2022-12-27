@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/xabi93/messenger/report"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/report"
+	"github.com/x4b1/messenger/store"
 )
 
 //go:generate moq -stub -out publish_mock_test.go . Source Queue Reporter

@@ -1,4 +1,4 @@
-//nolint: paralleltest // need connection pool in order to run tests in parallel
+// nolint: paralleltest // need connection pool in order to run tests in parallel
 // TODO: run tests in parallel
 package pgx_test
 
@@ -14,8 +14,8 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 
-	"github.com/xabi93/messenger"
-	store "github.com/xabi93/messenger/store/pgx"
+	"github.com/x4b1/messenger"
+	store "github.com/x4b1/messenger/store/pgx"
 )
 
 const (

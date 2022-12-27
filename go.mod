@@ -1,4 +1,4 @@
-module github.com/xabi93/messenger
+module github.com/x4b1/messenger
 
 go 1.19
 

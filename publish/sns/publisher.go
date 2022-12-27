@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 
-	"github.com/xabi93/messenger/publish"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger/store"
 )
 
 //go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client

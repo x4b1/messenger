@@ -13,8 +13,8 @@ import (
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 
-	"github.com/xabi93/messenger"
-	store "github.com/xabi93/messenger/store/stdsql"
+	"github.com/x4b1/messenger"
+	store "github.com/x4b1/messenger/store/stdsql"
 )
 
 const (

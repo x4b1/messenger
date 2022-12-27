@@ -5,7 +5,7 @@ package publish
 
 import (
 	"context"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/store"
 	"sync"
 )
 

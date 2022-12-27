@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pubsubpublish "github.com/xabi93/messenger/publish/pubsub"
-	"github.com/xabi93/messenger/store"
+	pubsubpublish "github.com/x4b1/messenger/publish/pubsub"
+	"github.com/x4b1/messenger/store"
 )
 
 const topic = "test-topic"

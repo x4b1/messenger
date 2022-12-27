@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/xabi93/messenger/publish"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger/store"
 )
 
 func TestPublishErrors(t *testing.T) {

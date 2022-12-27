@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	publisher "github.com/xabi93/messenger/publish/sqs"
-	"github.com/xabi93/messenger/store"
+	publisher "github.com/x4b1/messenger/publish/sqs"
+	"github.com/x4b1/messenger/store"
 )
 
 const (

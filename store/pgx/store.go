@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/xabi93/messenger"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/store"
 )
 
 // errors.

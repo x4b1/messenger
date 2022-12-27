@@ -5,8 +5,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 
-	"github.com/xabi93/messenger/publish"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger/store"
 )
 
 // Option is a function to set options to Publisher.

@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/xabi93/messenger/publish"
-	"github.com/xabi93/messenger/store"
+	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger/store"
 )
 
 type publisherSuite struct {
