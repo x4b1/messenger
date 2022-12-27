@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/internal/postgres"
 	store "github.com/x4b1/messenger/store/pgx"
 )
 
@@ -84,7 +85,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithInstance(context.Background(), conn, store.WithTableName(table))
+	_, err := store.WithConn(context.Background(), conn, store.WithTableName(table))
 	require.NoError(err)
 	row := conn.QueryRow(
 		context.Background(),
@@ -101,7 +102,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), conn, store.WithSchema("custom"))
+	_, err := store.WithConn(context.Background(), conn, store.WithSchema("custom"))
 
 	require.Error(err)
 }
@@ -109,10 +110,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), conn)
+	_, err := store.WithConn(context.Background(), conn)
 	require.NoError(err)
 
-	_, err = store.WithInstance(context.Background(), conn)
+	_, err = store.WithConn(context.Background(), conn)
 	require.NoError(err)
 }
 
@@ -122,7 +123,7 @@ func TestStorePublishMessages(t *testing.T) {
 		batch     = 10
 	)
 
-	pg, err := store.WithInstance(context.Background(), conn)
+	pg, err := store.WithConn(context.Background(), conn)
 	require.NoError(t, err)
 
 	t.Run("with transaction", func(t *testing.T) {
@@ -130,7 +131,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
 		})
 
 		tx, err := conn.Begin(ctx)
@@ -173,7 +174,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
