@@ -8,11 +8,14 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool
-*.cov
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
 
 # local test binaries
 bin/
 
 # Dependency directories (remove the comment below to include it)
 vendor/
+
+# Visual studio code project configuration files.
+.vscode/

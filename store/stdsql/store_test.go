@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/internal/postgres"
 	store "github.com/x4b1/messenger/store/stdsql"
 )
 
@@ -133,7 +134,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
 		})
 
 		tx, err := db.BeginTx(ctx, nil)
@@ -176,7 +177,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", store.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)

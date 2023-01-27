@@ -1,2 +1,2 @@
-// Package pgx implements storage functionality for saving and retreiving messages
+// Package pgx implements storage functionality for saving and retrieving messages
 package pgx

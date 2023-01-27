@@ -1,4 +1,4 @@
-package stdsql
+package postgres
 
 import (
 	"database/sql/driver"
@@ -14,7 +14,7 @@ func (m metadata) Value() (driver.Value, error) {
 
 // Make the Attrs struct implement the sql.Scanner interface. This method
 // simply decodes a JSON-encoded value into the struct fields.
-func (m *metadata) Scan(value interface{}) error {
+func (m *metadata) Scan(value any) error {
 	b, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")

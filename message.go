@@ -22,7 +22,7 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 // A Message represents a message to be sent to message message queue.
 type Message interface {
 	Metadata() map[string]string
-	Payload() interface{}
+	Payload() any
 }
 
 // GenericMessage represents a message to be sent to message message queue.
@@ -32,7 +32,7 @@ type GenericMessage struct {
 	metadata map[string]string
 	// Payload is the message payload.
 	// Must not be empty
-	payload interface{}
+	payload any
 }
 
 // AddMetadata adds the given key-value pair to the message metadata.
@@ -46,6 +46,6 @@ func (m *GenericMessage) Metadata() map[string]string {
 }
 
 // Payload returns the message payload.
-func (m *GenericMessage) Payload() interface{} {
+func (m *GenericMessage) Payload() any {
 	return m.payload
 }
