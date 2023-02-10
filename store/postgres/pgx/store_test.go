@@ -8,15 +8,17 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/internal/postgres"
-	store "github.com/x4b1/messenger/store/pgx"
+	"github.com/x4b1/messenger/store/postgres"
+	store "github.com/x4b1/messenger/store/postgres/pgx"
 )
 
 const (
@@ -85,7 +87,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithConn(context.Background(), conn, store.WithTableName(table))
+	_, err := store.WithConn(context.Background(), conn, postgres.WithTableName(table))
 	require.NoError(err)
 	row := conn.QueryRow(
 		context.Background(),
@@ -102,7 +104,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithConn(context.Background(), conn, store.WithSchema("custom"))
+	_, err := store.WithConn(context.Background(), conn, postgres.WithSchema("custom"))
 
 	require.Error(err)
 }
@@ -131,7 +133,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
 		})
 
 		tx, err := conn.Begin(ctx)
@@ -174,7 +176,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
@@ -208,5 +210,85 @@ func TestStorePublishMessages(t *testing.T) {
 			require.Equal(msg.Metadata(), msgs[i].Metadata)
 			require.Equal(msg.Payload(), msgs[i].Payload)
 		}
+	})
+}
+
+func TestDeletePublishedByExpiration(t *testing.T) {
+	batch := 10
+
+	pg, err := store.WithConn(context.Background(), conn)
+	require.NoError(t, err)
+
+	t.Run("expired and not published not deletes", func(t *testing.T) {
+		t.Cleanup(func() {
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
+		})
+
+		eventID := uuid.Must(uuid.NewRandom())
+
+		conn.Exec(context.Background(), fmt.Sprintf(`
+			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
+			eventID,
+			"{}",
+			"test",
+			time.Now().AddDate(0, 0, -2),
+		)
+
+		d, _ := time.ParseDuration("24h")
+		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
+
+		msgs, err := pg.Messages(context.Background(), batch)
+		require.NoError(t, err)
+
+		require.Len(t, msgs, 1)
+		require.Equal(t, eventID.String(), msgs[0].ID)
+	})
+	t.Run("not expired and published not deletes", func(t *testing.T) {
+		t.Cleanup(func() {
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
+		})
+
+		eventID := uuid.Must(uuid.NewRandom())
+
+		conn.Exec(context.Background(), fmt.Sprintf(`
+			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
+			eventID,
+			"{}",
+			"test",
+			time.Now().AddDate(0, 0, -1),
+		)
+
+		d, _ := time.ParseDuration("48h")
+		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
+
+		msgs, err := pg.Messages(context.Background(), batch)
+		require.NoError(t, err)
+
+		require.Len(t, msgs, 1)
+		require.Equal(t, eventID.String(), msgs[0].ID)
+	})
+
+	t.Run("expired and published deletes", func(t *testing.T) {
+		t.Cleanup(func() {
+			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
+		})
+
+		eventID := uuid.Must(uuid.NewRandom())
+
+		conn.Exec(context.Background(), fmt.Sprintf(`
+			INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`, postgres.DefaultMessagesTable),
+			eventID,
+			"{}",
+			"test",
+			time.Now().AddDate(0, 0, -2),
+		)
+
+		d, _ := time.ParseDuration("24h")
+		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
+
+		msgs, err := pg.Messages(context.Background(), batch)
+		require.NoError(t, err)
+
+		require.Empty(t, msgs)
 	})
 }
