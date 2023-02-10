@@ -21,7 +21,7 @@ var _ messenger.Store = &StoreMock{}
 //
 //		// make and configure a mocked messenger.Store
 //		mockedStore := &StoreMock{
-//			DeletePublishedByExpirationFunc: func(ctx context.Context, d time.Duration) error {
+//			DeletePublishedByExpirationFunc: func(ctx context.Context, exp time.Duration) error {
 //				panic("mock out the DeletePublishedByExpiration method")
 //			},
 //			MessagesFunc: func(ctx context.Context, batch int) ([]*store.Message, error) {
@@ -38,7 +38,7 @@ var _ messenger.Store = &StoreMock{}
 //	}
 type StoreMock struct {
 	// DeletePublishedByExpirationFunc mocks the DeletePublishedByExpiration method.
-	DeletePublishedByExpirationFunc func(ctx context.Context, d time.Duration) error
+	DeletePublishedByExpirationFunc func(ctx context.Context, exp time.Duration) error
 
 	// MessagesFunc mocks the Messages method.
 	MessagesFunc func(ctx context.Context, batch int) ([]*store.Message, error)
@@ -52,8 +52,8 @@ type StoreMock struct {
 		DeletePublishedByExpiration []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// D is the d argument value.
-			D time.Duration
+			// Exp is the exp argument value.
+			Exp time.Duration
 		}
 		// Messages holds details about calls to the Messages method.
 		Messages []struct {
@@ -76,13 +76,13 @@ type StoreMock struct {
 }
 
 // DeletePublishedByExpiration calls DeletePublishedByExpirationFunc.
-func (mock *StoreMock) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
+func (mock *StoreMock) DeletePublishedByExpiration(ctx context.Context, exp time.Duration) error {
 	callInfo := struct {
 		Ctx context.Context
-		D   time.Duration
+		Exp time.Duration
 	}{
 		Ctx: ctx,
-		D:   d,
+		Exp: exp,
 	}
 	mock.lockDeletePublishedByExpiration.Lock()
 	mock.calls.DeletePublishedByExpiration = append(mock.calls.DeletePublishedByExpiration, callInfo)
@@ -93,7 +93,7 @@ func (mock *StoreMock) DeletePublishedByExpiration(ctx context.Context, d time.D
 		)
 		return errOut
 	}
-	return mock.DeletePublishedByExpirationFunc(ctx, d)
+	return mock.DeletePublishedByExpirationFunc(ctx, exp)
 }
 
 // DeletePublishedByExpirationCalls gets all the calls that were made to DeletePublishedByExpiration.
@@ -102,11 +102,11 @@ func (mock *StoreMock) DeletePublishedByExpiration(ctx context.Context, d time.D
 //	len(mockedStore.DeletePublishedByExpirationCalls())
 func (mock *StoreMock) DeletePublishedByExpirationCalls() []struct {
 	Ctx context.Context
-	D   time.Duration
+	Exp time.Duration
 } {
 	var calls []struct {
 		Ctx context.Context
-		D   time.Duration
+		Exp time.Duration
 	}
 	mock.lockDeletePublishedByExpiration.RLock()
 	calls = mock.calls.DeletePublishedByExpiration

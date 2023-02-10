@@ -190,7 +190,7 @@ func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
 	s.GreaterOrEqual(len(s.sourceMock.DeletePublishedByExpirationCalls()), 1)
 	s.Equal(
 		expectedExpiration,
-		s.sourceMock.DeletePublishedByExpirationCalls()[0].D,
+		s.sourceMock.DeletePublishedByExpirationCalls()[0].Exp,
 	)
 }
 
