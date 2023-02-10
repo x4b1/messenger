@@ -18,25 +18,8 @@ var (
 	ErrMissingSchemaName = errors.New("missing schema name")
 )
 
-// MessagesTable is the table name that will be used if no other table name provided.
-const MessagesTable = "messages"
-
-// Option is a function to set options to Publisher.
-type Option func(*Storer)
-
-// WithSchema setups schema name.
-func WithSchema(s string) Option {
-	return func(c *Storer) {
-		c.schema = s
-	}
-}
-
-// WithTableName setups table name.
-func WithTableName(t string) Option {
-	return func(c *Storer) {
-		c.table = t
-	}
-}
+// DefaultMessagesTable is the table name that will be used if no other table name provided.
+const DefaultMessagesTable = "messages"
 
 // WithInstance returns Store source initialised with the given connection instance and config.
 func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
@@ -61,7 +44,7 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 	}
 
 	if s.table == "" {
-		s.table = MessagesTable
+		s.table = DefaultMessagesTable
 	}
 
 	if err := s.ensureTable(ctx); err != nil {
@@ -194,4 +177,17 @@ func currentSchema(ctx context.Context, db Instance) (string, error) {
 	}
 
 	return schemaName, nil
+}
+
+func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
+	err := s.db.Exec(
+		ctx,
+		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.schema, s.table),
+		time.Now().Add(-d),
+	)
+	if err != nil {
+		return fmt.Errorf("Deleting published messages: %w", err)
+	}
+
+	return nil
 }

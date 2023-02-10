@@ -1,4 +1,4 @@
-package publish_test
+package messenger_test
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store"
 )
 
 type publisherSuite struct {
 	suite.Suite
 
-	publisher *publish.Publisher
+	publisher *messenger.Worker
 
-	sourceMock  *publish.SourceMock
-	publishMock *publish.QueueMock
-	reportMock  *publish.ReporterMock
+	sourceMock    *StoreMock
+	publishMock   *QueueMock
+	errLoggerMock *ErrorLoggerMock
 
 	batchSize int
 
@@ -27,9 +27,10 @@ type publisherSuite struct {
 }
 
 func (s *publisherSuite) SetupTest() {
-	s.sourceMock = &publish.SourceMock{}
-	s.publishMock = &publish.QueueMock{}
-	s.reportMock = &publish.ReporterMock{}
+	s.sourceMock = &StoreMock{}
+	s.publishMock = &QueueMock{}
+	s.errLoggerMock = &ErrorLoggerMock{}
+
 	s.batchSize = 10
 	s.messages = []*store.Message{
 		{ID: "87935650-9d6c-4752-80a0-8bcdf321680e"},
@@ -37,11 +38,11 @@ func (s *publisherSuite) SetupTest() {
 		{ID: "e6b11966-5b4a-4d3a-84c0-446fb78c616d"},
 	}
 
-	s.publisher = publish.NewPublisher(
+	s.publisher = messenger.NewWorker(
 		s.sourceMock,
 		s.publishMock,
-		s.batchSize,
-		publish.WithReport(s.reportMock),
+		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithPublishBatchSize(s.batchSize),
 	)
 }
 
@@ -60,12 +61,9 @@ func (s *publisherSuite) TestPublishMessages() {
 		return nil
 	}
 
-	expectedError := publish.NewErrors()
-	expectedError.Add(s.messages[1], publisherror)
-
 	err := s.publisher.Publish(context.Background())
 	s.Error(err)
-	s.Equal(expectedError, err)
+	s.ErrorIs(err, publisherror)
 
 	s.Len(s.sourceMock.MessagesCalls(), 1)
 	s.Equal(s.sourceMock.MessagesCalls()[0].Batch, s.batchSize)
@@ -79,9 +77,6 @@ func (s *publisherSuite) TestPublishMessages() {
 	for i, c := range []*store.Message{s.messages[0], s.messages[2]} {
 		s.Equal(c, s.sourceMock.PublishedCalls()[i].Msg[0])
 	}
-
-	s.Len(s.reportMock.InitCalls(), 1)
-	s.Len(s.reportMock.FinishCalls(), 1)
 }
 
 func (s *publisherSuite) TestFailsGettingMessages() {
@@ -103,12 +98,13 @@ func (s *publisherSuite) TestFailsSavingPublishedMessages() {
 		return savingMessagesErr
 	}
 
-	expectedErr := publish.NewErrors()
-	for _, msg := range s.messages {
-		expectedErr.Add(msg, savingMessagesErr)
-	}
+	err := s.publisher.Publish(context.Background())
+	errors := err.(interface{ Unwrap() []error }).Unwrap()
+	s.Len(errors, 3)
 
-	s.Equal(s.publisher.Publish(context.Background()), expectedErr)
+	for _, err := range errors {
+		s.ErrorIs(err, savingMessagesErr)
+	}
 }
 
 func (s *publisherSuite) TestNotCallSavePublishedMessagesWhenNoMessages() {
@@ -130,7 +126,7 @@ func (s *publisherSuite) TestStartsAndStopsWithContext() {
 		return []*store.Message{}, nil
 	}
 
-	s.NoError(s.publisher.Start(ctx, time.NewTicker(time.Millisecond)))
+	s.NoError(s.publisher.Start(ctx))
 }
 
 func (s *publisherSuite) TestStartsMessagesReturnsError() {
@@ -140,9 +136,7 @@ func (s *publisherSuite) TestStartsMessagesReturnsError() {
 		return nil, messagesErr
 	}
 
-	s.Error(s.publisher.Start(ctx, time.NewTicker(time.Millisecond)))
-	s.Len(s.reportMock.ErrorCalls(), 1)
-	s.ErrorIs(messagesErr, s.reportMock.ErrorCalls()[0].Err)
+	s.Error(s.publisher.Start(ctx))
 }
 
 func (s *publisherSuite) TestStartsPublishReturnsError() {
@@ -161,8 +155,43 @@ func (s *publisherSuite) TestStartsPublishReturnsError() {
 		return publishErr
 	}
 
-	s.NoError(s.publisher.Start(ctx, time.NewTicker(time.Millisecond)))
-	s.Len(s.reportMock.ErrorCalls(), 1)
+	s.NoError(s.publisher.Start(ctx))
+	s.Len(s.errLoggerMock.ErrorCalls(), 1)
+	s.ErrorIs(s.errLoggerMock.ErrorCalls()[0].Err, publishErr)
+}
+
+func (s *publisherSuite) TestStartWithoutCleanSetupNotStartsProcess() {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(time.Second)
+		cancel()
+	}()
+	s.NoError(s.publisher.Start(ctx))
+
+	s.Empty(s.sourceMock.DeletePublishedByExpirationCalls())
+}
+
+func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
+	expectedExpiration := time.Hour
+	s.publisher = messenger.NewWorker(
+		s.sourceMock,
+		s.publishMock,
+		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithCleanUp(time.Second, expectedExpiration),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(time.Second * 2)
+		cancel()
+	}()
+	s.NoError(s.publisher.Start(ctx))
+
+	s.GreaterOrEqual(len(s.sourceMock.DeletePublishedByExpirationCalls()), 1)
+	s.Equal(
+		expectedExpiration,
+		s.sourceMock.DeletePublishedByExpirationCalls()[0].D,
+	)
 }
 
 func TestPublisher(t *testing.T) {

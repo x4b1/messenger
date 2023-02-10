@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/internal/postgres"
-	store "github.com/x4b1/messenger/store/stdsql"
+	"github.com/x4b1/messenger/store/postgres"
+	store "github.com/x4b1/messenger/store/postgres/stdsql"
 )
 
 const (
@@ -88,7 +88,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithInstance(context.Background(), db, store.WithTableName(table))
+	_, err := store.WithInstance(context.Background(), db, postgres.WithTableName(table))
 	require.NoError(err)
 	row := db.QueryRowContext(
 		context.Background(),
@@ -105,7 +105,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), db, store.WithSchema("custom"))
+	_, err := store.WithInstance(context.Background(), db, postgres.WithSchema("custom"))
 
 	require.Error(err)
 }
@@ -134,7 +134,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
 		})
 
 		tx, err := db.BeginTx(ctx, nil)
@@ -177,7 +177,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		t.Cleanup(func() {
-			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.MessagesTable))
+			db.ExecContext(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
 		})
 
 		publishMsgs := make([]messenger.Message, totalMsgs)

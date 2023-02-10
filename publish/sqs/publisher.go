@@ -8,9 +8,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
-	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store"
 )
+
+var _ messenger.Queue = &Publisher{}
 
 //go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
 
@@ -67,8 +69,6 @@ func New(ctx context.Context, svc Client, queue string, opts ...Option) (*Publis
 
 	return &p, nil
 }
-
-var _ publish.Queue = &Publisher{}
 
 // Publisher handles the pubsub topic messages.
 type Publisher struct {

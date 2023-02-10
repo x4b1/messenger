@@ -5,9 +5,11 @@ import (
 
 	"cloud.google.com/go/pubsub"
 
-	"github.com/x4b1/messenger/publish"
+	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store"
 )
+
+var _ messenger.Queue = &Publisher{}
 
 // Option is a function to set options to Publisher.
 type Option func(*Publisher)
@@ -36,8 +38,6 @@ func New(topic *pubsub.Topic, opts ...Option) *Publisher {
 
 	return &p
 }
-
-var _ publish.Queue = &Publisher{}
 
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
