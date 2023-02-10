@@ -16,19 +16,19 @@ var _ publishsns.Client = &ClientMock{}
 
 // ClientMock is a mock implementation of publishsns.Client.
 //
-// 	func TestSomethingThatUsesClient(t *testing.T) {
+//	func TestSomethingThatUsesClient(t *testing.T) {
 //
-// 		// make and configure a mocked publishsns.Client
-// 		mockedClient := &ClientMock{
-// 			PublishFunc: func(ctx context.Context, params *servicesns.PublishInput, optFns ...func(*servicesns.Options)) (*servicesns.PublishOutput, error) {
-// 				panic("mock out the Publish method")
-// 			},
-// 		}
+//		// make and configure a mocked publishsns.Client
+//		mockedClient := &ClientMock{
+//			PublishFunc: func(ctx context.Context, params *servicesns.PublishInput, optFns ...func(*servicesns.Options)) (*servicesns.PublishOutput, error) {
+//				panic("mock out the Publish method")
+//			},
+//		}
 //
-// 		// use mockedClient in code that requires publishsns.Client
-// 		// and then make assertions.
+//		// use mockedClient in code that requires publishsns.Client
+//		// and then make assertions.
 //
-// 	}
+//	}
 type ClientMock struct {
 	// PublishFunc mocks the Publish method.
 	PublishFunc func(ctx context.Context, params *servicesns.PublishInput, optFns ...func(*servicesns.Options)) (*servicesns.PublishOutput, error)
@@ -74,7 +74,8 @@ func (mock *ClientMock) Publish(ctx context.Context, params *servicesns.PublishI
 
 // PublishCalls gets all the calls that were made to Publish.
 // Check the length with:
-//     len(mockedClient.PublishCalls())
+//
+//	len(mockedClient.PublishCalls())
 func (mock *ClientMock) PublishCalls() []struct {
 	Ctx    context.Context
 	Params *servicesns.PublishInput

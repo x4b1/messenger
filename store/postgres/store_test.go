@@ -1,95 +1,36 @@
-// nolint: paralleltest // need connection pool in order to run tests in parallel
-// TODO: run tests in parallel
-package pgx_test
+package postgres_test
 
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store/postgres"
-	store "github.com/x4b1/messenger/store/postgres/pgx"
+	store "github.com/x4b1/messenger/store/postgres/stdsql"
 )
-
-const (
-	user     = "test"
-	password = "test"
-)
-
-var conn *pgx.Conn
-
-func TestMain(m *testing.M) {
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
-	}
-
-	postgresContainer, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "postgres",
-		Tag:        "13",
-		Env: []string{
-			fmt.Sprintf("POSTGRES_USER=%s", user),
-			fmt.Sprintf("POSTGRES_PASSWORD=%s", password),
-		},
-	}, func(config *docker.HostConfig) {
-		config.AutoRemove = true
-		config.RestartPolicy = docker.RestartPolicy{
-			Name: "no",
-		}
-	})
-	if err != nil {
-		log.Fatalf("Could not start postgres: %s", err)
-	}
-
-	postgresContainer.Expire(60)
-
-	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-	if err := pool.Retry(func() error {
-		var err error
-		conn, err = pgx.Connect(context.Background(), fmt.Sprintf("postgres://%s:%s@localhost:%s/postgres", user, password, postgresContainer.GetPort("5432/tcp")))
-		if err != nil {
-			return err
-		}
-
-		return conn.Ping(context.Background())
-	}); err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
-	}
-
-	code := m.Run()
-
-	if err := pool.Purge(postgresContainer); err != nil {
-		log.Fatalf("Could not purge postgres: %s", err)
-	}
-
-	os.Exit(code)
-}
 
 func TestOpen(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
-	_, err := store.Open(context.Background(), conn.Config().ConnString())
+	_, err := store.Open(context.Background(), dbURL)
 	require.NoError(err)
 }
 
 func TestCustomTable(t *testing.T) {
-	require := require.New(t)
+	t.Parallel()
 
 	table := "my-messages"
 
-	_, err := store.WithConn(context.Background(), conn, postgres.WithTableName(table))
-	require.NoError(err)
-	row := conn.QueryRow(
+	_, err := store.WithInstance(context.Background(), db, postgres.WithTableName(table))
+	require.NoError(t, err)
+	row := db.QueryRowContext(
 		context.Background(),
 		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
 		"public",
@@ -97,46 +38,44 @@ func TestCustomTable(t *testing.T) {
 	)
 
 	var count int
-	require.NoError(row.Scan(&count))
-	require.Equal(count, 1)
+	require.NoError(t, row.Scan(&count))
+	require.Equal(t, count, 1)
 }
 
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
-	require := require.New(t)
+	t.Parallel()
 
-	_, err := store.WithConn(context.Background(), conn, postgres.WithSchema("custom"))
+	_, err := store.WithInstance(context.Background(), db, postgres.WithSchema("custom"))
 
-	require.Error(err)
+	require.Error(t, err)
 }
 
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithConn(context.Background(), conn)
+	_, err := store.WithInstance(context.Background(), db)
 	require.NoError(err)
 
-	_, err = store.WithConn(context.Background(), conn)
+	_, err = store.WithInstance(context.Background(), db)
 	require.NoError(err)
 }
 
 func TestStorePublishMessages(t *testing.T) {
+	t.Parallel()
 	var (
 		totalMsgs = 15
 		batch     = 10
 	)
 
-	pg, err := store.WithConn(context.Background(), conn)
-	require.NoError(t, err)
-
 	t.Run("with transaction", func(t *testing.T) {
+		t.Parallel()
+
+		pg, db := NewTestStore(t)
+
 		ctx := context.Background()
 		require := require.New(t)
 
-		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
-		})
-
-		tx, err := conn.Begin(ctx)
+		tx, err := db.BeginTx(ctx, nil)
 		require.NoError(err)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
@@ -150,7 +89,7 @@ func TestStorePublishMessages(t *testing.T) {
 		}
 
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
-		require.NoError(tx.Commit(ctx))
+		require.NoError(tx.Commit())
 
 		msgs, err := pg.Messages(ctx, batch)
 		require.NoError(err)
@@ -173,11 +112,11 @@ func TestStorePublishMessages(t *testing.T) {
 	})
 
 	t.Run("without transaction", func(t *testing.T) {
-		require := require.New(t)
+		t.Parallel()
 
-		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
-		})
+		pg, _ := NewTestStore(t)
+
+		require := require.New(t)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
@@ -214,19 +153,16 @@ func TestStorePublishMessages(t *testing.T) {
 }
 
 func TestDeletePublishedByExpiration(t *testing.T) {
+	t.Parallel()
 	batch := 10
 
-	pg, err := store.WithConn(context.Background(), conn)
-	require.NoError(t, err)
-
 	t.Run("expired and not published not deletes", func(t *testing.T) {
-		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
-		})
+		t.Parallel()
+		pg, db := NewTestStore(t)
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		conn.Exec(context.Background(), fmt.Sprintf(`
+		db.ExecContext(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
@@ -244,13 +180,12 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 		require.Equal(t, eventID.String(), msgs[0].ID)
 	})
 	t.Run("not expired and published not deletes", func(t *testing.T) {
-		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
-		})
+		t.Parallel()
+		pg, db := NewTestStore(t)
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		conn.Exec(context.Background(), fmt.Sprintf(`
+		db.ExecContext(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
@@ -269,13 +204,12 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 	})
 
 	t.Run("expired and published deletes", func(t *testing.T) {
-		t.Cleanup(func() {
-			conn.Exec(context.Background(), fmt.Sprintf("TRUNCATE %s", postgres.DefaultMessagesTable))
-		})
+		t.Parallel()
+		pg, db := NewTestStore(t)
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		conn.Exec(context.Background(), fmt.Sprintf(`
+		db.ExecContext(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",

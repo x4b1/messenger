@@ -16,22 +16,22 @@ var _ publishsqs.Client = &ClientMock{}
 
 // ClientMock is a mock implementation of publishsqs.Client.
 //
-// 	func TestSomethingThatUsesClient(t *testing.T) {
+//	func TestSomethingThatUsesClient(t *testing.T) {
 //
-// 		// make and configure a mocked publishsqs.Client
-// 		mockedClient := &ClientMock{
-// 			GetQueueUrlFunc: func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
-// 				panic("mock out the GetQueueUrl method")
-// 			},
-// 			SendMessageFunc: func(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
-// 				panic("mock out the SendMessage method")
-// 			},
-// 		}
+//		// make and configure a mocked publishsqs.Client
+//		mockedClient := &ClientMock{
+//			GetQueueUrlFunc: func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
+//				panic("mock out the GetQueueUrl method")
+//			},
+//			SendMessageFunc: func(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
+//				panic("mock out the SendMessage method")
+//			},
+//		}
 //
-// 		// use mockedClient in code that requires publishsqs.Client
-// 		// and then make assertions.
+//		// use mockedClient in code that requires publishsqs.Client
+//		// and then make assertions.
 //
-// 	}
+//	}
 type ClientMock struct {
 	// GetQueueUrlFunc mocks the GetQueueUrl method.
 	GetQueueUrlFunc func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error)
@@ -90,7 +90,8 @@ func (mock *ClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQ
 
 // GetQueueUrlCalls gets all the calls that were made to GetQueueUrl.
 // Check the length with:
-//     len(mockedClient.GetQueueUrlCalls())
+//
+//	len(mockedClient.GetQueueUrlCalls())
 func (mock *ClientMock) GetQueueUrlCalls() []struct {
 	Ctx    context.Context
 	Params *servicesqs.GetQueueUrlInput
@@ -133,7 +134,8 @@ func (mock *ClientMock) SendMessage(ctx context.Context, params *servicesqs.Send
 
 // SendMessageCalls gets all the calls that were made to SendMessage.
 // Check the length with:
-//     len(mockedClient.SendMessageCalls())
+//
+//	len(mockedClient.SendMessageCalls())
 func (mock *ClientMock) SendMessageCalls() []struct {
 	Ctx    context.Context
 	Params *servicesqs.SendMessageInput
