@@ -83,7 +83,11 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 		exec = tx
 	}
 
-	return exec.Exec(ctx, stmt, valueArgs...)
+	if err := exec.Exec(ctx, stmt, valueArgs...); err != nil {
+		return fmt.Errorf("storing messages: %w", err)
+	}
+
+	return nil
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
@@ -98,7 +102,7 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]*store.Message, erro
 		batch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting messages: %w", err)
 	}
 	defer rows.Close()
 
@@ -126,7 +130,11 @@ func (s Storer) Published(ctx context.Context, msgs ...*store.Message) error {
 		ids[i] = msg.ID
 	}
 
-	return s.db.Exec(ctx, fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, s.schema, s.table), ids)
+	if err := s.db.Exec(ctx, fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, s.schema, s.table), ids); err != nil {
+		return fmt.Errorf("updating published messages: %w", err)
+	}
+
+	return nil
 }
 
 // ensureTable creates if not exists the table to store messages.
@@ -142,7 +150,7 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 
 	var count int
 	if err := row.Scan(&count); err != nil {
-		return err
+		return fmt.Errorf("ensuring outbox table exists: %w", err)
 	}
 
 	if count == 1 {
@@ -173,7 +181,7 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 func currentSchema(ctx context.Context, db Instance) (string, error) {
 	var schemaName string
 	if err := db.QueryRow(ctx, `SELECT CURRENT_SCHEMA()`).Scan(&schemaName); err != nil {
-		return "", err
+		return "", fmt.Errorf("getting current schema: %w", err)
 	}
 
 	return schemaName, nil
@@ -186,7 +194,7 @@ func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duratio
 		time.Now().Add(-d),
 	)
 	if err != nil {
-		return fmt.Errorf("Deleting published messages: %w", err)
+		return fmt.Errorf("deleting published messages: %w", err)
 	}
 
 	return nil

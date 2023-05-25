@@ -46,7 +46,7 @@ func setupPostgresDB() (func(), error) {
 
 	postgresContainer, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "postgres",
-		Tag:        "14",
+		Tag:        "15",
 		Env: []string{
 			fmt.Sprintf("POSTGRES_USER=%s", "test"),
 			fmt.Sprintf("POSTGRES_PASSWORD=%s", "test"),
