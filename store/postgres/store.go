@@ -111,13 +111,10 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]*store.Message, erro
 		msg := &store.Message{}
 		md := metadata(msg.Metadata)
 		if err := rows.Scan(&msg.ID, &md, &msg.Payload, &msg.At); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scanning message: %w", err)
 		}
 		msg.Metadata = md
 		msgs = append(msgs, msg)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return msgs, nil

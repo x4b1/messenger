@@ -6,14 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store/postgres"
-	pgx_store "github.com/x4b1/messenger/store/postgres/stdsql"
 	store "github.com/x4b1/messenger/store/postgres/stdsql"
 )
 
@@ -22,9 +20,6 @@ func TestOpen(t *testing.T) {
 	require := require.New(t)
 
 	_, err := store.Open(context.Background(), dbURL)
-	require.NoError(err)
-
-	_, err = pgx_store.Open(context.Background(), dbURL)
 	require.NoError(err)
 }
 
@@ -96,33 +91,24 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
 		require.NoError(tx.Commit())
 
-		s, err := pgx_store.Open(ctx, dbURL)
+		msgs, err := pg.Messages(ctx, batch)
 		require.NoError(err)
-		s.Store(ctx, nil, publishMsgs...)
-		msgs, err := s.Messages(ctx, batch)
+
+		require.Len(msgs, batch)
+		for i, msg := range publishMsgs[:batch] {
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
+			require.Equal(msg.Payload(), msgs[i].Payload)
+		}
+
+		require.NoError(pg.Published(ctx, msgs...))
+
+		msgs, err = pg.Messages(ctx, batch)
 		require.NoError(err)
-		spew.Dump(msgs)
 
-		t.Fail()
-
-		// msgs, err := pg.Messages(ctx, batch)
-		// require.NoError(err)
-
-		// require.Len(msgs, batch)
-		// for i, msg := range publishMsgs[:batch] {
-		// 	require.Equal(msg.Metadata(), msgs[i].Metadata)
-		// 	require.Equal(msg.Payload(), msgs[i].Payload)
-		// }
-
-		// require.NoError(pg.Published(ctx, msgs...))
-
-		// msgs, err = pg.Messages(ctx, batch)
-		// require.NoError(err)
-
-		// require.Len(msgs, totalMsgs-batch)
-		// for i, msg := range publishMsgs[batch:] {
-		// 	require.Equal(msg.Metadata(), msgs[i].Metadata)
-		// }
+		require.Len(msgs, totalMsgs-batch)
+		for i, msg := range publishMsgs[batch:] {
+			require.Equal(msg.Metadata(), msgs[i].Metadata)
+		}
 	})
 
 	t.Run("without transaction", func(t *testing.T) {
