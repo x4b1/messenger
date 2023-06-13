@@ -14,19 +14,20 @@ type executor interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
-type instance interface {
+// Instance is an abstraction of pgx API, to allow to use pgx.Conn or pgxpool.Pool.
+type Instance interface {
 	executor
 	Ping(ctx context.Context) error
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func newWrapper(i instance) *wrapper {
+func newWrapper(i Instance) *wrapper {
 	return &wrapper{i}
 }
 
 type wrapper struct {
-	instance
+	instance Instance
 }
 
 func (w *wrapper) Ping(ctx context.Context) error {
