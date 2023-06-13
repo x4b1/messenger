@@ -1,4 +1,4 @@
-package postgres_test
+package pgx_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store/postgres"
-	store "github.com/x4b1/messenger/store/postgres/stdsql"
+	store "github.com/x4b1/messenger/store/postgres/pgx"
 )
 
 func TestOpen(t *testing.T) {
@@ -28,9 +28,9 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithInstance(context.Background(), db, postgres.WithTableName(table))
+	_, err := store.WithInstance(context.Background(), connPool, postgres.WithTableName(table))
 	require.NoError(t, err)
-	row := db.QueryRowContext(
+	row := connPool.QueryRow(
 		context.Background(),
 		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
 		"public",
@@ -45,7 +45,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	t.Parallel()
 
-	_, err := store.WithInstance(context.Background(), db, postgres.WithSchema("custom"))
+	_, err := store.WithInstance(context.Background(), connPool, postgres.WithSchema("custom"))
 
 	require.Error(t, err)
 }
@@ -53,10 +53,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), db)
+	_, err := store.WithInstance(context.Background(), connPool)
 	require.NoError(err)
 
-	_, err = store.WithInstance(context.Background(), db)
+	_, err = store.WithInstance(context.Background(), connPool)
 	require.NoError(err)
 }
 
@@ -75,7 +75,7 @@ func TestStorePublishMessages(t *testing.T) {
 		ctx := context.Background()
 		require := require.New(t)
 
-		tx, err := db.BeginTx(ctx, nil)
+		tx, err := db.Begin(ctx)
 		require.NoError(err)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
@@ -89,7 +89,7 @@ func TestStorePublishMessages(t *testing.T) {
 		}
 
 		require.NoError(pg.Store(ctx, tx, publishMsgs...))
-		require.NoError(tx.Commit())
+		require.NoError(tx.Commit(ctx))
 
 		msgs, err := pg.Messages(ctx, batch)
 		require.NoError(err)
@@ -162,7 +162,7 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
+		db.Exec(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
@@ -185,7 +185,7 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
+		db.Exec(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
@@ -209,7 +209,7 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
+		db.Exec(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",

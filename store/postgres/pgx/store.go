@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store/postgres"
@@ -20,19 +19,12 @@ func Open(ctx context.Context, connStr string, opts ...postgres.Option) (*Store,
 		return nil, err
 	}
 
-	return WithConn(ctx, conn, opts...)
+	return WithInstance(ctx, conn, opts...)
 }
 
-// WithConn returns Store source initialised with the given connection instance and config.
-func WithConn(ctx context.Context, conn *pgx.Conn, opts ...postgres.Option) (*Store, error) {
-	s, err := postgres.New(ctx, newWrapper(conn), opts...)
-
-	return &Store{s}, err
-}
-
-// WithPool returns Store source initialised with the given connection pool instance and config.
-func WithPool(ctx context.Context, pool *pgxpool.Pool, opts ...postgres.Option) (*Store, error) {
-	s, err := postgres.New(ctx, newWrapper(pool), opts...)
+// WithInstance returns Store source initialised with the given connection pool instance and config.
+func WithInstance(ctx context.Context, i Instance, opts ...postgres.Option) (*Store, error) {
+	s, err := postgres.New(ctx, newWrapper(i), opts...)
 
 	return &Store{s}, err
 }
