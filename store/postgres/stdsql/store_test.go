@@ -83,8 +83,8 @@ func TestStorePublishMessages(t *testing.T) {
 			var err error
 			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
 			require.NoError(err)
-			msg.AddMetadata("some", fmt.Sprintf("meta-%d", i+1))
-			msg.AddMetadata("test", "with transaction")
+			msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
+			msg.SetMetadata("test", "with transaction")
 			publishMsgs[i] = msg
 		}
 
@@ -96,8 +96,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.Metadata(), msgs[i].Metadata)
-			require.Equal(msg.Payload(), msgs[i].Payload)
+			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
+			require.Equal(msg.GetPayload(), msgs[i].GetPayload())
 		}
 
 		require.NoError(pg.Published(ctx, msgs...))
@@ -107,7 +107,7 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.Metadata(), msgs[i].Metadata)
+			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
 		}
 	})
 
@@ -123,8 +123,8 @@ func TestStorePublishMessages(t *testing.T) {
 			var err error
 			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
 			require.NoError(err)
-			msg.AddMetadata("some", fmt.Sprintf("meta-%d", i+1))
-			msg.AddMetadata("test", "without transaction")
+			msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
+			msg.SetMetadata("test", "without transaction")
 			publishMsgs[i] = msg
 		}
 
@@ -135,8 +135,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.Metadata(), msgs[i].Metadata)
-			require.Equal(msg.Payload(), msgs[i].Payload)
+			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
+			require.Equal(msg.GetPayload(), msgs[i].GetPayload())
 		}
 
 		require.NoError(pg.Published(context.Background(), msgs...))
@@ -146,8 +146,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.Metadata(), msgs[i].Metadata)
-			require.Equal(msg.Payload(), msgs[i].Payload)
+			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
+			require.Equal(msg.GetPayload(), msgs[i].GetPayload())
 		}
 	})
 }
@@ -162,13 +162,14 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
+		_, err := db.ExecContext(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
 			"test",
 			time.Now().AddDate(0, 0, -2),
 		)
+		require.NoError(t, err)
 
 		d, _ := time.ParseDuration("24h")
 		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
@@ -177,7 +178,7 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, msgs, 1)
-		require.Equal(t, eventID.String(), msgs[0].ID)
+		require.Equal(t, eventID.String(), msgs[0].ID())
 	})
 	t.Run("not expired and published not deletes", func(t *testing.T) {
 		t.Parallel()
@@ -200,7 +201,7 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, msgs, 1)
-		require.Equal(t, eventID.String(), msgs[0].ID)
+		require.Equal(t, eventID.String(), msgs[0].ID())
 	})
 
 	t.Run("expired and published deletes", func(t *testing.T) {

@@ -6,7 +6,6 @@ package messenger_test
 import (
 	"context"
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/store"
 	"sync"
 	"time"
 )
@@ -24,10 +23,10 @@ var _ messenger.Store = &StoreMock{}
 //			DeletePublishedByExpirationFunc: func(ctx context.Context, exp time.Duration) error {
 //				panic("mock out the DeletePublishedByExpiration method")
 //			},
-//			MessagesFunc: func(ctx context.Context, batch int) ([]*store.Message, error) {
+//			MessagesFunc: func(ctx context.Context, batch int) ([]messenger.Message, error) {
 //				panic("mock out the Messages method")
 //			},
-//			PublishedFunc: func(ctx context.Context, msg ...*store.Message) error {
+//			PublishedFunc: func(ctx context.Context, msg ...messenger.Message) error {
 //				panic("mock out the Published method")
 //			},
 //		}
@@ -41,10 +40,10 @@ type StoreMock struct {
 	DeletePublishedByExpirationFunc func(ctx context.Context, exp time.Duration) error
 
 	// MessagesFunc mocks the Messages method.
-	MessagesFunc func(ctx context.Context, batch int) ([]*store.Message, error)
+	MessagesFunc func(ctx context.Context, batch int) ([]messenger.Message, error)
 
 	// PublishedFunc mocks the Published method.
-	PublishedFunc func(ctx context.Context, msg ...*store.Message) error
+	PublishedFunc func(ctx context.Context, msg ...messenger.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -67,7 +66,7 @@ type StoreMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg []*store.Message
+			Msg []messenger.Message
 		}
 	}
 	lockDeletePublishedByExpiration sync.RWMutex
@@ -115,7 +114,7 @@ func (mock *StoreMock) DeletePublishedByExpirationCalls() []struct {
 }
 
 // Messages calls MessagesFunc.
-func (mock *StoreMock) Messages(ctx context.Context, batch int) ([]*store.Message, error) {
+func (mock *StoreMock) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
 	callInfo := struct {
 		Ctx   context.Context
 		Batch int
@@ -128,7 +127,7 @@ func (mock *StoreMock) Messages(ctx context.Context, batch int) ([]*store.Messag
 	mock.lockMessages.Unlock()
 	if mock.MessagesFunc == nil {
 		var (
-			messagesOut []*store.Message
+			messagesOut []messenger.Message
 			errOut      error
 		)
 		return messagesOut, errOut
@@ -155,10 +154,10 @@ func (mock *StoreMock) MessagesCalls() []struct {
 }
 
 // Published calls PublishedFunc.
-func (mock *StoreMock) Published(ctx context.Context, msg ...*store.Message) error {
+func (mock *StoreMock) Published(ctx context.Context, msg ...messenger.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg []*store.Message
+		Msg []messenger.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -181,11 +180,11 @@ func (mock *StoreMock) Published(ctx context.Context, msg ...*store.Message) err
 //	len(mockedStore.PublishedCalls())
 func (mock *StoreMock) PublishedCalls() []struct {
 	Ctx context.Context
-	Msg []*store.Message
+	Msg []messenger.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg []*store.Message
+		Msg []messenger.Message
 	}
 	mock.lockPublished.RLock()
 	calls = mock.calls.Published
@@ -193,28 +192,28 @@ func (mock *StoreMock) PublishedCalls() []struct {
 	return calls
 }
 
-// Ensure, that QueueMock does implement messenger.Queue.
+// Ensure, that BrokerMock does implement messenger.Broker.
 // If this is not the case, regenerate this file with moq.
-var _ messenger.Queue = &QueueMock{}
+var _ messenger.Broker = &BrokerMock{}
 
-// QueueMock is a mock implementation of messenger.Queue.
+// BrokerMock is a mock implementation of messenger.Broker.
 //
-//	func TestSomethingThatUsesQueue(t *testing.T) {
+//	func TestSomethingThatUsesBroker(t *testing.T) {
 //
-//		// make and configure a mocked messenger.Queue
-//		mockedQueue := &QueueMock{
-//			PublishFunc: func(ctx context.Context, msg *store.Message) error {
+//		// make and configure a mocked messenger.Broker
+//		mockedBroker := &BrokerMock{
+//			PublishFunc: func(ctx context.Context, msg messenger.Message) error {
 //				panic("mock out the Publish method")
 //			},
 //		}
 //
-//		// use mockedQueue in code that requires messenger.Queue
+//		// use mockedBroker in code that requires messenger.Broker
 //		// and then make assertions.
 //
 //	}
-type QueueMock struct {
+type BrokerMock struct {
 	// PublishFunc mocks the Publish method.
-	PublishFunc func(ctx context.Context, msg *store.Message) error
+	PublishFunc func(ctx context.Context, msg messenger.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -223,17 +222,17 @@ type QueueMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg *store.Message
+			Msg messenger.Message
 		}
 	}
 	lockPublish sync.RWMutex
 }
 
 // Publish calls PublishFunc.
-func (mock *QueueMock) Publish(ctx context.Context, msg *store.Message) error {
+func (mock *BrokerMock) Publish(ctx context.Context, msg messenger.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg *store.Message
+		Msg messenger.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -253,14 +252,14 @@ func (mock *QueueMock) Publish(ctx context.Context, msg *store.Message) error {
 // PublishCalls gets all the calls that were made to Publish.
 // Check the length with:
 //
-//	len(mockedQueue.PublishCalls())
-func (mock *QueueMock) PublishCalls() []struct {
+//	len(mockedBroker.PublishCalls())
+func (mock *BrokerMock) PublishCalls() []struct {
 	Ctx context.Context
-	Msg *store.Message
+	Msg messenger.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg *store.Message
+		Msg messenger.Message
 	}
 	mock.lockPublish.RLock()
 	calls = mock.calls.Publish

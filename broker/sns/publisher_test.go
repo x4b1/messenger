@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	publisher "github.com/x4b1/messenger/publish/sns"
-	"github.com/x4b1/messenger/store"
+	"github.com/x4b1/messenger"
+	publisher "github.com/x4b1/messenger/broker/sns"
 )
 
 const (
@@ -26,8 +26,8 @@ const (
 
 var errAws = errors.New("aws error")
 
-var msg = &store.Message{
-	ID: uuid.Must(uuid.NewRandom()).String(),
+var msg = &messenger.GenericMessage{
+	Id: uuid.Must(uuid.NewRandom()).String(),
 	Metadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
 		metaKey:        orderingValue,
@@ -72,7 +72,7 @@ func TestPublish(t *testing.T) {
 			name: "default ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sns.PublishInput{
-				MessageDeduplicationId: aws.String(msg.ID),
+				MessageDeduplicationId: aws.String(msg.Id),
 				Message:                aws.String(string(msg.Payload)),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
@@ -86,7 +86,7 @@ func TestPublish(t *testing.T) {
 			name: "metadata ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
 			expectedInput: &sns.PublishInput{
-				MessageDeduplicationId: aws.String(msg.ID),
+				MessageDeduplicationId: aws.String(msg.Id),
 				Message:                aws.String(string(msg.Payload)),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{

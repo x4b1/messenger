@@ -9,36 +9,35 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/store"
 )
 
 type publisherSuite struct {
 	suite.Suite
 
-	publisher *messenger.Worker
+	publisher *messenger.Messenger
 
 	sourceMock    *StoreMock
-	publishMock   *QueueMock
+	publishMock   *BrokerMock
 	errLoggerMock *ErrorLoggerMock
 
 	batchSize int
 
-	messages []*store.Message
+	messages []messenger.Message
 }
 
 func (s *publisherSuite) SetupTest() {
 	s.sourceMock = &StoreMock{}
-	s.publishMock = &QueueMock{}
+	s.publishMock = &BrokerMock{}
 	s.errLoggerMock = &ErrorLoggerMock{}
 
 	s.batchSize = 10
-	s.messages = []*store.Message{
-		{ID: "87935650-9d6c-4752-80a0-8bcdf321680e"},
-		{ID: "6d91abdd-561d-4d56-959f-f060b4c866ad"},
-		{ID: "e6b11966-5b4a-4d3a-84c0-446fb78c616d"},
+	s.messages = []messenger.Message{
+		&messenger.GenericMessage{Id: "87935650-9d6c-4752-80a0-8bcdf321680e"},
+		&messenger.GenericMessage{Id: "6d91abdd-561d-4d56-959f-f060b4c866ad"},
+		&messenger.GenericMessage{Id: "e6b11966-5b4a-4d3a-84c0-446fb78c616d"},
 	}
 
-	s.publisher = messenger.NewWorker(
+	s.publisher = messenger.NewMessenger(
 		s.sourceMock,
 		s.publishMock,
 		messenger.WithErrorLogger(s.errLoggerMock),
@@ -47,14 +46,14 @@ func (s *publisherSuite) SetupTest() {
 }
 
 func (s *publisherSuite) TestPublishMessages() {
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		return s.messages, nil
 	}
 
 	publisherror := errors.New("publishing error")
 
-	s.publishMock.PublishFunc = func(_ context.Context, msg *store.Message) error {
-		if msg.ID == s.messages[1].ID {
+	s.publishMock.PublishFunc = func(_ context.Context, msg messenger.Message) error {
+		if msg.ID() == s.messages[1].ID() {
 			return publisherror
 		}
 
@@ -74,14 +73,14 @@ func (s *publisherSuite) TestPublishMessages() {
 	}
 
 	s.Len(s.sourceMock.PublishedCalls(), 2)
-	for i, c := range []*store.Message{s.messages[0], s.messages[2]} {
+	for i, c := range []messenger.Message{s.messages[0], s.messages[2]} {
 		s.Equal(c, s.sourceMock.PublishedCalls()[i].Msg[0])
 	}
 }
 
 func (s *publisherSuite) TestFailsGettingMessages() {
 	gettingMessagesErr := errors.New("getting messages")
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		return nil, gettingMessagesErr
 	}
 
@@ -89,12 +88,12 @@ func (s *publisherSuite) TestFailsGettingMessages() {
 }
 
 func (s *publisherSuite) TestFailsSavingPublishedMessages() {
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		return s.messages, nil
 	}
 
 	savingMessagesErr := errors.New("saving messages")
-	s.sourceMock.PublishedFunc = func(context.Context, ...*store.Message) error {
+	s.sourceMock.PublishedFunc = func(context.Context, ...messenger.Message) error {
 		return savingMessagesErr
 	}
 
@@ -117,13 +116,13 @@ func (s *publisherSuite) TestNotCallSavePublishedMessagesWhenNoMessages() {
 func (s *publisherSuite) TestStartsAndStopsWithContext() {
 	ctx, cancel := context.WithCancel(context.Background())
 	runTimes := 0
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		runTimes++
 		if runTimes >= 3 {
 			cancel()
 		}
 
-		return []*store.Message{}, nil
+		return []messenger.Message{}, nil
 	}
 
 	s.NoError(s.publisher.Start(ctx))
@@ -132,7 +131,7 @@ func (s *publisherSuite) TestStartsAndStopsWithContext() {
 func (s *publisherSuite) TestStartsMessagesReturnsError() {
 	ctx := context.Background()
 	messagesErr := errors.New("messages error")
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		return nil, messagesErr
 	}
 
@@ -141,12 +140,12 @@ func (s *publisherSuite) TestStartsMessagesReturnsError() {
 
 func (s *publisherSuite) TestStartsPublishReturnsError() {
 	ctx, cancel := context.WithCancel(context.Background())
-	s.sourceMock.MessagesFunc = func(context.Context, int) ([]*store.Message, error) {
+	s.sourceMock.MessagesFunc = func(context.Context, int) ([]messenger.Message, error) {
 		return s.messages, nil
 	}
 	runTimes := 0
 	publishErr := errors.New("publishing error")
-	s.sourceMock.PublishedFunc = func(context.Context, ...*store.Message) error {
+	s.sourceMock.PublishedFunc = func(context.Context, ...messenger.Message) error {
 		runTimes++
 		if runTimes >= 3 {
 			cancel()
@@ -173,11 +172,11 @@ func (s *publisherSuite) TestStartWithoutCleanSetupNotStartsProcess() {
 
 func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
 	expectedExpiration := time.Hour
-	s.publisher = messenger.NewWorker(
+	s.publisher = messenger.NewMessenger(
 		s.sourceMock,
 		s.publishMock,
 		messenger.WithErrorLogger(s.errLoggerMock),
-		messenger.WithCleanUp(time.Second, expectedExpiration),
+		messenger.WithCleanUp(expectedExpiration),
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())

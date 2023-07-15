@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	publisher "github.com/x4b1/messenger/publish/sqs"
-	"github.com/x4b1/messenger/store"
+	"github.com/x4b1/messenger"
+	publisher "github.com/x4b1/messenger/broker/sqs"
 )
 
 const (
@@ -27,8 +27,8 @@ const (
 
 var errAws = errors.New("aws error")
 
-var msg = &store.Message{
-	ID: uuid.Must(uuid.NewRandom()).String(),
+var msg = &messenger.GenericMessage{
+	Id: uuid.Must(uuid.NewRandom()).String(),
 	Metadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
 		metaKey:        orderingValue,
@@ -76,7 +76,7 @@ func TestPublish(t *testing.T) {
 			name: "no ordering key",
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: nil,
-				MessageBody:            aws.String(string(msg.Payload)),
+				MessageBody:            aws.String(string(msg.GetPayload())),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
@@ -89,11 +89,11 @@ func TestPublish(t *testing.T) {
 			name: "default ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sqs.SendMessageInput{
-				MessageDeduplicationId: aws.String(msg.ID),
-				MessageBody:            aws.String(string(msg.Payload)),
+				MessageDeduplicationId: aws.String(msg.ID()),
+				MessageBody:            aws.String(string(msg.GetPayload())),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.GetMetadata()["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				QueueUrl: aws.String(queueURL),
@@ -103,8 +103,8 @@ func TestPublish(t *testing.T) {
 			name: "metadata ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
 			expectedInput: &sqs.SendMessageInput{
-				MessageDeduplicationId: aws.String(msg.ID),
-				MessageBody:            aws.String(string(msg.Payload)),
+				MessageDeduplicationId: aws.String(msg.ID()),
+				MessageBody:            aws.String(string(msg.GetPayload())),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
 					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
