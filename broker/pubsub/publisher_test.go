@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pubsubpublish "github.com/x4b1/messenger/publish/pubsub"
-	"github.com/x4b1/messenger/store"
+	"github.com/x4b1/messenger"
+	pubsubpublish "github.com/x4b1/messenger/broker/pubsub"
 )
 
 const topic = "test-topic"
@@ -45,8 +45,8 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 
 	srv, topic := initPubsub(ctx, t)
 
-	m := &store.Message{
-		ID:       uuid.Must(uuid.NewRandom()).String(),
+	m := &messenger.GenericMessage{
+		Id:       uuid.Must(uuid.NewRandom()).String(),
 		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
 		Payload:  []byte("some message"),
 	}
@@ -66,8 +66,8 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 
 	srv, topic := initPubsub(ctx, t)
 
-	m := &store.Message{
-		ID:       uuid.Must(uuid.NewRandom()).String(),
+	m := &messenger.GenericMessage{
+		Id:       uuid.Must(uuid.NewRandom()).String(),
 		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
 		Payload:  []byte("some message"),
 	}
@@ -91,8 +91,8 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	metaKey := "meta-key"
 	orderingValue := "value-1"
 
-	m := &store.Message{
-		ID:       uuid.Must(uuid.NewRandom()).String(),
+	m := &messenger.GenericMessage{
+		Id:       uuid.Must(uuid.NewRandom()).String(),
 		Metadata: map[string]string{metaKey: orderingValue},
 		Payload:  []byte("some message"),
 	}

@@ -6,19 +6,19 @@ package sqs_test
 import (
 	"context"
 	servicesqs "github.com/aws/aws-sdk-go-v2/service/sqs"
-	publishsqs "github.com/x4b1/messenger/publish/sqs"
+	brokersqs "github.com/x4b1/messenger/broker/sqs"
 	"sync"
 )
 
-// Ensure, that ClientMock does implement publishsqs.Client.
+// Ensure, that ClientMock does implement brokersqs.Client.
 // If this is not the case, regenerate this file with moq.
-var _ publishsqs.Client = &ClientMock{}
+var _ brokersqs.Client = &ClientMock{}
 
-// ClientMock is a mock implementation of publishsqs.Client.
+// ClientMock is a mock implementation of brokersqs.Client.
 //
 //	func TestSomethingThatUsesClient(t *testing.T) {
 //
-//		// make and configure a mocked publishsqs.Client
+//		// make and configure a mocked brokersqs.Client
 //		mockedClient := &ClientMock{
 //			GetQueueUrlFunc: func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 //				panic("mock out the GetQueueUrl method")
@@ -28,7 +28,7 @@ var _ publishsqs.Client = &ClientMock{}
 //			},
 //		}
 //
-//		// use mockedClient in code that requires publishsqs.Client
+//		// use mockedClient in code that requires brokersqs.Client
 //		// and then make assertions.
 //
 //	}

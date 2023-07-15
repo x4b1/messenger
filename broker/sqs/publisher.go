@@ -9,10 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/store"
 )
 
-var _ messenger.Queue = &Publisher{}
+var _ messenger.Broker = &Publisher{}
 
 //go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
 
@@ -85,9 +84,10 @@ type Publisher struct {
 }
 
 // Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
-	att := make(map[string]types.MessageAttributeValue, len(msg.Metadata))
-	for k, v := range msg.Metadata {
+func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
+	md := msg.GetMetadata()
+	att := make(map[string]types.MessageAttributeValue, len(md))
+	for k, v := range md {
 		att[k] = types.MessageAttributeValue{
 			DataType:    aws.String("String"),
 			StringValue: aws.String(v),
@@ -99,7 +99,7 @@ func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 		&sqs.SendMessageInput{
 			MessageDeduplicationId: p.messageDeduplication(msg),
 			MessageAttributes:      att,
-			MessageBody:            aws.String(string(msg.Payload)),
+			MessageBody:            aws.String(string(msg.GetPayload())),
 			QueueUrl:               aws.String(p.queue),
 			MessageGroupId:         p.orderingKey(msg),
 		})
@@ -111,22 +111,22 @@ func (p Publisher) Publish(ctx context.Context, msg *store.Message) error {
 }
 
 // messageDeduplication checks if the publisher is setup as fifo and returns the message deduplication id.
-func (p Publisher) messageDeduplication(msg *store.Message) *string {
+func (p Publisher) messageDeduplication(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}
 
-	return aws.String(msg.ID)
+	return aws.String(msg.ID())
 }
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg *store.Message) *string {
+func (p Publisher) orderingKey(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}
 
-	key, ok := msg.Metadata[p.metaOrdKey]
+	key, ok := msg.GetMetadata()[p.metaOrdKey]
 	if ok {
 		return aws.String(key)
 	}

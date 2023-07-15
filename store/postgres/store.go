@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/store"
 
 	"github.com/google/uuid"
 )
@@ -68,7 +67,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
 		valueStr[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)", i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4)
-		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), metadata(msg.Metadata()), msg.Payload(), time.Now())
+		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), metadata(msg.GetMetadata()), msg.GetPayload(), time.Now())
 	}
 
 	stmt := fmt.Sprintf(
@@ -91,7 +90,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
-func (s Storer) Messages(ctx context.Context, batch int) ([]*store.Message, error) {
+func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
@@ -106,11 +105,11 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]*store.Message, erro
 	}
 	defer rows.Close()
 
-	msgs := make([]*store.Message, 0, batch)
+	msgs := make([]messenger.Message, 0, batch)
 	for rows.Next() {
-		msg := &store.Message{}
+		msg := &messenger.GenericMessage{}
 		md := metadata(msg.Metadata)
-		if err := rows.Scan(&msg.ID, &md, &msg.Payload, &msg.At); err != nil {
+		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.At); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
 		msg.Metadata = md
@@ -121,10 +120,10 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]*store.Message, erro
 }
 
 // Published marks as published the given messages.
-func (s Storer) Published(ctx context.Context, msgs ...*store.Message) error {
+func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error {
 	ids := make([]string, len(msgs))
 	for i, msg := range msgs {
-		ids[i] = msg.ID
+		ids[i] = msg.ID()
 	}
 
 	if err := s.db.Exec(ctx, fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, s.schema, s.table), ids); err != nil {

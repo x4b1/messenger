@@ -6,26 +6,26 @@ package sns_test
 import (
 	"context"
 	servicesns "github.com/aws/aws-sdk-go-v2/service/sns"
-	publishsns "github.com/x4b1/messenger/publish/sns"
+	brokersns "github.com/x4b1/messenger/broker/sns"
 	"sync"
 )
 
-// Ensure, that ClientMock does implement publishsns.Client.
+// Ensure, that ClientMock does implement brokersns.Client.
 // If this is not the case, regenerate this file with moq.
-var _ publishsns.Client = &ClientMock{}
+var _ brokersns.Client = &ClientMock{}
 
-// ClientMock is a mock implementation of publishsns.Client.
+// ClientMock is a mock implementation of brokersns.Client.
 //
 //	func TestSomethingThatUsesClient(t *testing.T) {
 //
-//		// make and configure a mocked publishsns.Client
+//		// make and configure a mocked brokersns.Client
 //		mockedClient := &ClientMock{
 //			PublishFunc: func(ctx context.Context, params *servicesns.PublishInput, optFns ...func(*servicesns.Options)) (*servicesns.PublishOutput, error) {
 //				panic("mock out the Publish method")
 //			},
 //		}
 //
-//		// use mockedClient in code that requires publishsns.Client
+//		// use mockedClient in code that requires brokersns.Client
 //		// and then make assertions.
 //
 //	}
