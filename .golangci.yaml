@@ -264,9 +264,9 @@ issues:
         - gochecknoglobals
         - goconst
         - gosec
+        - lll
         - noctx
         - wrapcheck
 
-    - path: "internal/test/*"
-      linters:
-        - gochecknoglobals
+    - text: 'shadow: declaration of "(err|ctx)" shadows declaration at'
+      linters: [ govet ]

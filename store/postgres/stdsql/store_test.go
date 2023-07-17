@@ -80,7 +80,6 @@ func TestStorePublishMessages(t *testing.T) {
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
-			var err error
 			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
 			require.NoError(err)
 			msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
@@ -186,15 +185,17 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
+		_, err := db.ExecContext(context.Background(), fmt.Sprintf(`
 			INSERT INTO %q (id, metadata, payload, created_at) VALUES ($1, $2, $3, $4)`, postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
 			"test",
 			time.Now().AddDate(0, 0, -1),
 		)
+		require.NoError(t, err)
 
-		d, _ := time.ParseDuration("48h")
+		d, err := time.ParseDuration("48h")
+		require.NoError(t, err)
 		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
 
 		msgs, err := pg.Messages(context.Background(), batch)
@@ -210,15 +211,19 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		db.ExecContext(context.Background(), fmt.Sprintf(`
-			INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`, postgres.DefaultMessagesTable),
+		_, err := db.ExecContext(context.Background(),
+			fmt.Sprintf(`INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`,
+				postgres.DefaultMessagesTable,
+			),
 			eventID,
 			"{}",
 			"test",
 			time.Now().AddDate(0, 0, -2),
 		)
+		require.NoError(t, err)
 
-		d, _ := time.ParseDuration("24h")
+		d, err := time.ParseDuration("24h")
+		require.NoError(t, err)
 		require.NoError(t, pg.DeletePublishedByExpiration(context.Background(), d))
 
 		msgs, err := pg.Messages(context.Background(), batch)

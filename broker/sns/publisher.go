@@ -9,9 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 )
 
-var _ messenger.Broker = &Publisher{}
+var _ broker.Broker = &Publisher{}
 
 //go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client
 
@@ -45,12 +46,12 @@ func WithFifoQueue(fifo bool) Option {
 }
 
 // Open returns a new Publisher instance.
-func Open(ctx context.Context, awsOpts sns.Options, topicARN string, opts ...Option) (*Publisher, error) {
-	return New(ctx, sns.New(awsOpts), topicARN, opts...)
+func Open(awsOpts sns.Options, topicARN string, opts ...Option) (*Publisher, error) {
+	return New(sns.New(awsOpts), topicARN, opts...)
 }
 
 // New returns a new Publisher instance.
-func New(ctx context.Context, cli Client, topicARN string, opts ...Option) (*Publisher, error) {
+func New(cli Client, topicARN string, opts ...Option) (*Publisher, error) {
 	p := Publisher{
 		cli:      cli,
 		topicARN: topicARN,

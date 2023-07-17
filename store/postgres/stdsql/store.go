@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	// initialize pgx stdlib driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/x4b1/messenger"

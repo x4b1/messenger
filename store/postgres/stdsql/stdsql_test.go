@@ -21,7 +21,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	conn, close, err := test.Setup(context.Background())
+	conn, clean, err := test.Setup(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,14 +30,14 @@ func TestMain(m *testing.M) {
 
 	db, err = sql.Open("pgx", dbURL)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	txdb.Register("txdb", "pgx", dbURL)
 
 	code := m.Run()
 
-	close()
+	clean()
 
 	os.Exit(code)
 }

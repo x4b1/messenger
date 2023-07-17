@@ -6,9 +6,10 @@ import (
 	"cloud.google.com/go/pubsub"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 )
 
-var _ messenger.Broker = &Publisher{}
+var _ broker.Broker = &Publisher{}
 
 // Option is a function to set options to Publisher.
 type Option func(*Publisher)

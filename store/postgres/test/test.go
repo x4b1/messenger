@@ -15,6 +15,8 @@ const (
 	PostgresVersion  = "15"
 	PostgresUser     = "test"
 	PostgresPassword = PostgresUser
+
+	maxContainerExpiry = 60
 )
 
 func Setup(ctx context.Context) (*pgx.Conn, func(), error) {
@@ -40,11 +42,15 @@ func Setup(ctx context.Context) (*pgx.Conn, func(), error) {
 		log.Fatalf("Could not start postgres: %s", err)
 	}
 
-	if err = postgresContainer.Expire(60); err != nil {
+	if err = postgresContainer.Expire(maxContainerExpiry); err != nil {
 		return nil, nil, err
 	}
 
-	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:%s/postgres", PostgresUser, PostgresPassword, postgresContainer.GetPort("5432/tcp"))
+	dbURL := fmt.Sprintf("postgres://%s:%s@localhost:%s/postgres",
+		PostgresUser,
+		PostgresPassword,
+		postgresContainer.GetPort("5432/tcp"),
+	)
 
 	var conn *pgx.Conn
 	// exponential backoff-retry, because the application in the container might not be ready to accept dbections yet

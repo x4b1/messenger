@@ -192,26 +192,26 @@ func (mock *StoreMock) PublishedCalls() []struct {
 	return calls
 }
 
-// Ensure, that BrokerMock does implement messenger.Broker.
+// Ensure, that PublisherMock does implement messenger.Publisher.
 // If this is not the case, regenerate this file with moq.
-var _ messenger.Broker = &BrokerMock{}
+var _ messenger.Publisher = &PublisherMock{}
 
-// BrokerMock is a mock implementation of messenger.Broker.
+// PublisherMock is a mock implementation of messenger.Publisher.
 //
-//	func TestSomethingThatUsesBroker(t *testing.T) {
+//	func TestSomethingThatUsesPublisher(t *testing.T) {
 //
-//		// make and configure a mocked messenger.Broker
-//		mockedBroker := &BrokerMock{
+//		// make and configure a mocked messenger.Publisher
+//		mockedPublisher := &PublisherMock{
 //			PublishFunc: func(ctx context.Context, msg messenger.Message) error {
 //				panic("mock out the Publish method")
 //			},
 //		}
 //
-//		// use mockedBroker in code that requires messenger.Broker
+//		// use mockedPublisher in code that requires messenger.Publisher
 //		// and then make assertions.
 //
 //	}
-type BrokerMock struct {
+type PublisherMock struct {
 	// PublishFunc mocks the Publish method.
 	PublishFunc func(ctx context.Context, msg messenger.Message) error
 
@@ -229,7 +229,7 @@ type BrokerMock struct {
 }
 
 // Publish calls PublishFunc.
-func (mock *BrokerMock) Publish(ctx context.Context, msg messenger.Message) error {
+func (mock *PublisherMock) Publish(ctx context.Context, msg messenger.Message) error {
 	callInfo := struct {
 		Ctx context.Context
 		Msg messenger.Message
@@ -252,8 +252,8 @@ func (mock *BrokerMock) Publish(ctx context.Context, msg messenger.Message) erro
 // PublishCalls gets all the calls that were made to Publish.
 // Check the length with:
 //
-//	len(mockedBroker.PublishCalls())
-func (mock *BrokerMock) PublishCalls() []struct {
+//	len(mockedPublisher.PublishCalls())
+func (mock *PublisherMock) PublishCalls() []struct {
 	Ctx context.Context
 	Msg messenger.Message
 } {

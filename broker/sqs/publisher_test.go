@@ -48,7 +48,9 @@ func TestFailsGettingQueueURL(t *testing.T) {
 }
 
 func TestPublish(t *testing.T) {
+	t.Parallel()
 	t.Run("fails", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		sqsMock := ClientMock{
 			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
@@ -135,7 +137,7 @@ func TestPublish(t *testing.T) {
 			r.NoError(pub.Publish(ctx, msg))
 
 			r.Len(sqsMock.SendMessageCalls(), 1)
-			r.Equal(sqsMock.SendMessageCalls()[0].Params, tc.expectedInput)
+			r.Equal(sqsMock.SendMessageCalls()[0].SendMessageInput, tc.expectedInput)
 		})
 	}
 }
