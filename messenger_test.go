@@ -17,7 +17,7 @@ type publisherSuite struct {
 	publisher *messenger.Messenger
 
 	sourceMock    *StoreMock
-	publishMock   *BrokerMock
+	publishMock   *PublisherMock
 	errLoggerMock *ErrorLoggerMock
 
 	batchSize int
@@ -27,7 +27,7 @@ type publisherSuite struct {
 
 func (s *publisherSuite) SetupTest() {
 	s.sourceMock = &StoreMock{}
-	s.publishMock = &BrokerMock{}
+	s.publishMock = &PublisherMock{}
 	s.errLoggerMock = &ErrorLoggerMock{}
 
 	s.batchSize = 10
@@ -98,10 +98,11 @@ func (s *publisherSuite) TestFailsSavingPublishedMessages() {
 	}
 
 	err := s.publisher.Publish(context.Background())
-	errors := err.(interface{ Unwrap() []error }).Unwrap()
-	s.Len(errors, 3)
+	//nolint: errorlint // stdlib does not provide a way to Unwrap multiple errors
+	errs := err.(interface{ Unwrap() []error }).Unwrap()
+	s.Len(errs, 3)
 
-	for _, err := range errors {
+	for _, err := range errs {
 		s.ErrorIs(err, savingMessagesErr)
 	}
 }

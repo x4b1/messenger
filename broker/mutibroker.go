@@ -9,20 +9,37 @@ import (
 
 var (
 	ErrEmptyTargetMetadataKey         = errors.New("empty target metadata key")
-	ErrEmptyTargetMetadataValue       = errors.New("empty target metadata value")
 	ErrMessageDoesNotMatchWithBrokers = errors.New("message does not match with any broker")
 )
 
-var _ messenger.Broker = &MultiBroker{}
+var _ Broker = &MultiBroker{}
+
+// MultiBrokerOption defines the optional parameters for MultiBroker.
+type MultiBrokerOption func(*MultiBroker)
+
+// MultiBrokerWithBroker adds a broker to the MultiBroker.
+func MultiBrokerWithBroker(trgtValue string, b Broker) MultiBrokerOption {
+	return func(mb *MultiBroker) {
+		mb.AddBroker(trgtValue, b)
+	}
+}
 
 // MultiBroker returns and empty MultiBroker,
 // if the targetKey is empty it returns an error.
-func NewMultiBroker(targetKey string) (*MultiBroker, error) {
+func NewMultiBroker(targetKey string, opts ...MultiBrokerOption) (*MultiBroker, error) {
 	if len(targetKey) == 0 {
 		return nil, ErrEmptyTargetMetadataKey
 	}
 
-	return &MultiBroker{mdKey: targetKey}, nil
+	mb := &MultiBroker{
+		mdKey:   targetKey,
+		brokers: map[string]Broker{},
+	}
+	for _, opt := range opts {
+		opt(mb)
+	}
+
+	return mb, nil
 }
 
 // MultiBroker contains multiple brokers and a metadata key to allow route messages
@@ -30,11 +47,11 @@ func NewMultiBroker(targetKey string) (*MultiBroker, error) {
 type MultiBroker struct {
 	mdKey string
 
-	brokers map[string]messenger.Broker
+	brokers map[string]Broker
 }
 
 // AddBroker registers the broker with the value filter.
-func (mb *MultiBroker) AddBroker(value string, b messenger.Broker) {
+func (mb *MultiBroker) AddBroker(value string, b Broker) {
 	mb.brokers[value] = b
 }
 

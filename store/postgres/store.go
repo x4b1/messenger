@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/x4b1/messenger"
-
-	"github.com/google/uuid"
 )
 
 // errors.
@@ -66,8 +64,9 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 	totalArgs := 4
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
+		//nolint: gomnd // need it to point to each argument to insert
 		valueStr[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)", i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4)
-		valueArgs = append(valueArgs, uuid.Must(uuid.NewRandom()), metadata(msg.GetMetadata()), msg.GetPayload(), time.Now())
+		valueArgs = append(valueArgs, msg.ID(), metadata(msg.GetMetadata()), msg.GetPayload(), time.Now())
 	}
 
 	stmt := fmt.Sprintf(
@@ -126,7 +125,12 @@ func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error 
 		ids[i] = msg.ID()
 	}
 
-	if err := s.db.Exec(ctx, fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`, s.schema, s.table), ids); err != nil {
+	if err := s.db.Exec(ctx,
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`,
+			s.schema,
+			s.table,
+		),
+		ids); err != nil {
 		return fmt.Errorf("updating published messages: %w", err)
 	}
 

@@ -36,7 +36,9 @@ var msg = &messenger.GenericMessage{
 }
 
 func TestPublish(t *testing.T) {
+	t.Parallel()
 	t.Run("fails", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		snsMock := ClientMock{
 			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
@@ -44,7 +46,7 @@ func TestPublish(t *testing.T) {
 			},
 		}
 
-		pub, err := publisher.New(ctx, &snsMock, topicARN)
+		pub, err := publisher.New(&snsMock, topicARN)
 		require.NoError(t, err)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
@@ -106,7 +108,7 @@ func TestPublish(t *testing.T) {
 
 			snsMock := ClientMock{}
 
-			pub, err := publisher.New(ctx, &snsMock, topicARN, tc.opts...)
+			pub, err := publisher.New(&snsMock, topicARN, tc.opts...)
 			r.NoError(err)
 
 			r.NoError(pub.Publish(ctx, msg))

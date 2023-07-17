@@ -9,16 +9,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 )
 
-var _ messenger.Broker = &Publisher{}
+var _ broker.Broker = &Publisher{}
 
 //go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
 
 // Client defines the AWS SQS methods used by the Publisher. This is used for testing purposes.
 type Client interface {
-	GetQueueUrl(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
-	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
+	GetQueueUrl(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
+	SendMessage(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
 }
 
 // Option is a function to set options to Publisher.

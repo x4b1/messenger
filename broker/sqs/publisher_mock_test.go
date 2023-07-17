@@ -20,10 +20,10 @@ var _ brokersqs.Client = &ClientMock{}
 //
 //		// make and configure a mocked brokersqs.Client
 //		mockedClient := &ClientMock{
-//			GetQueueUrlFunc: func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
+//			GetQueueUrlFunc: func(contextMoqParam context.Context, getQueueUrlInput *servicesqs.GetQueueUrlInput, fns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 //				panic("mock out the GetQueueUrl method")
 //			},
-//			SendMessageFunc: func(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
+//			SendMessageFunc: func(contextMoqParam context.Context, sendMessageInput *servicesqs.SendMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
 //				panic("mock out the SendMessage method")
 //			},
 //		}
@@ -34,30 +34,30 @@ var _ brokersqs.Client = &ClientMock{}
 //	}
 type ClientMock struct {
 	// GetQueueUrlFunc mocks the GetQueueUrl method.
-	GetQueueUrlFunc func(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error)
+	GetQueueUrlFunc func(contextMoqParam context.Context, getQueueUrlInput *servicesqs.GetQueueUrlInput, fns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error)
 
 	// SendMessageFunc mocks the SendMessage method.
-	SendMessageFunc func(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error)
+	SendMessageFunc func(contextMoqParam context.Context, sendMessageInput *servicesqs.SendMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// GetQueueUrl holds details about calls to the GetQueueUrl method.
 		GetQueueUrl []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Params is the params argument value.
-			Params *servicesqs.GetQueueUrlInput
-			// OptFns is the optFns argument value.
-			OptFns []func(*servicesqs.Options)
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// GetQueueUrlInput is the getQueueUrlInput argument value.
+			GetQueueUrlInput *servicesqs.GetQueueUrlInput
+			// Fns is the fns argument value.
+			Fns []func(*servicesqs.Options)
 		}
 		// SendMessage holds details about calls to the SendMessage method.
 		SendMessage []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Params is the params argument value.
-			Params *servicesqs.SendMessageInput
-			// OptFns is the optFns argument value.
-			OptFns []func(*servicesqs.Options)
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// SendMessageInput is the sendMessageInput argument value.
+			SendMessageInput *servicesqs.SendMessageInput
+			// Fns is the fns argument value.
+			Fns []func(*servicesqs.Options)
 		}
 	}
 	lockGetQueueUrl sync.RWMutex
@@ -65,15 +65,15 @@ type ClientMock struct {
 }
 
 // GetQueueUrl calls GetQueueUrlFunc.
-func (mock *ClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQueueUrlInput, optFns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
+func (mock *ClientMock) GetQueueUrl(contextMoqParam context.Context, getQueueUrlInput *servicesqs.GetQueueUrlInput, fns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 	callInfo := struct {
-		Ctx    context.Context
-		Params *servicesqs.GetQueueUrlInput
-		OptFns []func(*servicesqs.Options)
+		ContextMoqParam  context.Context
+		GetQueueUrlInput *servicesqs.GetQueueUrlInput
+		Fns              []func(*servicesqs.Options)
 	}{
-		Ctx:    ctx,
-		Params: params,
-		OptFns: optFns,
+		ContextMoqParam:  contextMoqParam,
+		GetQueueUrlInput: getQueueUrlInput,
+		Fns:              fns,
 	}
 	mock.lockGetQueueUrl.Lock()
 	mock.calls.GetQueueUrl = append(mock.calls.GetQueueUrl, callInfo)
@@ -85,7 +85,7 @@ func (mock *ClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQ
 		)
 		return getQueueUrlOutputOut, errOut
 	}
-	return mock.GetQueueUrlFunc(ctx, params, optFns...)
+	return mock.GetQueueUrlFunc(contextMoqParam, getQueueUrlInput, fns...)
 }
 
 // GetQueueUrlCalls gets all the calls that were made to GetQueueUrl.
@@ -93,14 +93,14 @@ func (mock *ClientMock) GetQueueUrl(ctx context.Context, params *servicesqs.GetQ
 //
 //	len(mockedClient.GetQueueUrlCalls())
 func (mock *ClientMock) GetQueueUrlCalls() []struct {
-	Ctx    context.Context
-	Params *servicesqs.GetQueueUrlInput
-	OptFns []func(*servicesqs.Options)
+	ContextMoqParam  context.Context
+	GetQueueUrlInput *servicesqs.GetQueueUrlInput
+	Fns              []func(*servicesqs.Options)
 } {
 	var calls []struct {
-		Ctx    context.Context
-		Params *servicesqs.GetQueueUrlInput
-		OptFns []func(*servicesqs.Options)
+		ContextMoqParam  context.Context
+		GetQueueUrlInput *servicesqs.GetQueueUrlInput
+		Fns              []func(*servicesqs.Options)
 	}
 	mock.lockGetQueueUrl.RLock()
 	calls = mock.calls.GetQueueUrl
@@ -109,15 +109,15 @@ func (mock *ClientMock) GetQueueUrlCalls() []struct {
 }
 
 // SendMessage calls SendMessageFunc.
-func (mock *ClientMock) SendMessage(ctx context.Context, params *servicesqs.SendMessageInput, optFns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
+func (mock *ClientMock) SendMessage(contextMoqParam context.Context, sendMessageInput *servicesqs.SendMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
 	callInfo := struct {
-		Ctx    context.Context
-		Params *servicesqs.SendMessageInput
-		OptFns []func(*servicesqs.Options)
+		ContextMoqParam  context.Context
+		SendMessageInput *servicesqs.SendMessageInput
+		Fns              []func(*servicesqs.Options)
 	}{
-		Ctx:    ctx,
-		Params: params,
-		OptFns: optFns,
+		ContextMoqParam:  contextMoqParam,
+		SendMessageInput: sendMessageInput,
+		Fns:              fns,
 	}
 	mock.lockSendMessage.Lock()
 	mock.calls.SendMessage = append(mock.calls.SendMessage, callInfo)
@@ -129,7 +129,7 @@ func (mock *ClientMock) SendMessage(ctx context.Context, params *servicesqs.Send
 		)
 		return sendMessageOutputOut, errOut
 	}
-	return mock.SendMessageFunc(ctx, params, optFns...)
+	return mock.SendMessageFunc(contextMoqParam, sendMessageInput, fns...)
 }
 
 // SendMessageCalls gets all the calls that were made to SendMessage.
@@ -137,14 +137,14 @@ func (mock *ClientMock) SendMessage(ctx context.Context, params *servicesqs.Send
 //
 //	len(mockedClient.SendMessageCalls())
 func (mock *ClientMock) SendMessageCalls() []struct {
-	Ctx    context.Context
-	Params *servicesqs.SendMessageInput
-	OptFns []func(*servicesqs.Options)
+	ContextMoqParam  context.Context
+	SendMessageInput *servicesqs.SendMessageInput
+	Fns              []func(*servicesqs.Options)
 } {
 	var calls []struct {
-		Ctx    context.Context
-		Params *servicesqs.SendMessageInput
-		OptFns []func(*servicesqs.Options)
+		ContextMoqParam  context.Context
+		SendMessageInput *servicesqs.SendMessageInput
+		Fns              []func(*servicesqs.Options)
 	}
 	mock.lockSendMessage.RLock()
 	calls = mock.calls.SendMessage

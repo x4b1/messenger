@@ -2,7 +2,6 @@ package pgx_test
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -22,7 +21,7 @@ var (
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	conn, close, err := test.Setup(ctx)
+	conn, clean, err := test.Setup(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,12 +29,12 @@ func TestMain(m *testing.M) {
 	dbURL = conn.Config().ConnString()
 
 	if connPool, err = pgxpool.New(ctx, dbURL); err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err)
 	}
 
 	code := m.Run()
 
-	close()
+	clean()
 
 	os.Exit(code)
 }

@@ -12,7 +12,7 @@ const (
 	defaultBatchSize = 100
 )
 
-//go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Broker ErrorLogger
+//go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorLogger
 
 // Source is the interface that wraps the message retrieval and update methods.
 type Store interface {
@@ -24,8 +24,8 @@ type Store interface {
 	DeletePublishedByExpiration(ctx context.Context, exp time.Duration) error
 }
 
-// Broker is the interface that wraps the basic message publishing.
-type Broker interface {
+// Publisher is the interface that wraps the basic message publishing.
+type Publisher interface {
 	// Sends the message to broker.
 	Publish(ctx context.Context, msg Message) error
 }
@@ -78,14 +78,14 @@ func WithCleanUp(expiration time.Duration) Option {
 //   - Publish batch size: 100
 //   - Publish period: 1s
 //   - Golang standard error logger.
-func NewMessenger(store Store, broker Broker, opts ...Option) *Messenger {
+func NewMessenger(store Store, publisher Publisher, opts ...Option) *Messenger {
 	p := Messenger{
 		interval:  time.Second,
 		batchSize: defaultBatchSize,
 
-		logger: log.NewDefault(),
-		broker: broker,
-		store:  store,
+		logger:    log.NewDefault(),
+		publisher: publisher,
+		store:     store,
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -94,7 +94,7 @@ func NewMessenger(store Store, broker Broker, opts ...Option) *Messenger {
 	return &p
 }
 
-// Messenger is responsible of publishing messages from datastore to broker,
+// Messenger is responsible of publishing messages from datastore to publisher,
 // and cleaning already published messages.
 type Messenger struct {
 	interval time.Duration
@@ -105,9 +105,9 @@ type Messenger struct {
 	// clean params
 	expiration time.Duration
 
-	logger ErrorLogger
-	store  Store
-	broker Broker
+	logger    ErrorLogger
+	store     Store
+	publisher Publisher
 }
 
 // Publish runs once publishing process.
@@ -119,7 +119,7 @@ func (w *Messenger) Publish(ctx context.Context) error {
 
 	errs := []error{}
 	for _, msg := range msgs {
-		if err := w.broker.Publish(ctx, msg); err != nil {
+		if err := w.publisher.Publish(ctx, msg); err != nil {
 			errs = append(errs, err)
 			continue
 		}
