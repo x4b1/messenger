@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/golangci/golangci-lint v1.54.2
-	github.com/matryer/moq v0.3.2
+	github.com/matryer/moq v0.3.3
 )
 
 require (
