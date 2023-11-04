@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.25.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.26.0
 	github.com/google/uuid v1.4.0
-	github.com/jackc/pgx/v5 v5.4.3
+	github.com/jackc/pgx/v5 v5.5.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/api v0.149.0
