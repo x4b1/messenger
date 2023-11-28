@@ -16,3 +16,10 @@ func WithTableName(t string) Option {
 		c.table = t
 	}
 }
+
+// WithJSONPayload creates payload column as JSONB.
+func WithJSONPayload() Option {
+	return func(c *Storer) {
+		c.jsonPayload = true
+	}
+}

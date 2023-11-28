@@ -54,8 +54,9 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 type Storer struct {
 	db Instance
 
-	schema string
-	table  string
+	schema      string
+	table       string
+	jsonPayload bool
 }
 
 // Store saves messages.
@@ -157,17 +158,23 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 		return nil
 	}
 
+	payloadType := "TEXT"
+	if s.jsonPayload {
+		payloadType = "JSONB"
+	}
+
 	err := s.db.Exec(
 		ctx,
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS "%s"."%s" (
 			id UUID PRIMARY KEY,
 			metadata JSONB NOT NULL,
-			payload TEXT,
+			payload %s,
 			published BOOLEAN DEFAULT FALSE,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
 			s.schema,
 			s.table,
+			payloadType,
 		),
 	)
 	if err != nil {
