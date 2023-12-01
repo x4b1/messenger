@@ -29,6 +29,8 @@ type Message interface {
 	ID() string
 	GetMetadata() map[string]string
 	GetPayload() []byte
+	GetPublished() bool
+	GetAt() time.Time
 }
 
 // GenericMessage represents a message to be sent to message message queue.
@@ -40,6 +42,8 @@ type GenericMessage struct {
 	Metadata map[string]string
 	// Payload is the message payload. Must not be empty
 	Payload []byte
+	// Message is published to broker or not.
+	Published bool
 	// At represent the moment of the message creation.
 	At time.Time
 }
@@ -57,12 +61,22 @@ func (m *GenericMessage) SetMetadata(key, value string) *GenericMessage {
 	return m
 }
 
-// Metadata returns the message metadata.
+// GetMetadata returns the message metadata.
 func (m *GenericMessage) GetMetadata() map[string]string {
 	return m.Metadata
 }
 
-// Payload returns the message payload.
+// GetPayload returns the message payload.
 func (m *GenericMessage) GetPayload() []byte {
 	return m.Payload
+}
+
+// GetPublished returns if message is published to broker.
+func (m *GenericMessage) GetPublished() bool {
+	return m.Published
+}
+
+// GetAt returns message creation moment.
+func (m *GenericMessage) GetAt() time.Time {
+	return m.At
 }

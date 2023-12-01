@@ -1,5 +1,3 @@
-:warning: WIP :warning:
-
 <h1 align="center">
   <img src=".github/logo.png" width="224px"/><br/>
   Messenger
