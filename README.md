@@ -8,9 +8,9 @@
 <p align="center">Abstracts from handling the retrieve of the messages from many sources and publishing to many queues. Just store the messages you want to publish.</p>
 
 <p align="center">
-<a href="https://pkg.go.dev/github.com/xabi93/messenger" target="_blank"><img src="https://pkg.go.dev/badge/github.com/xabi93/messenger.svg" alt="go reference" /></a>&nbsp;
+<a href="https://pkg.go.dev/github.com/x4b1/messenger" target="_blank"><img src="https://pkg.go.dev/badge/github.com/xabi93/messenger.svg" alt="go reference" /></a>&nbsp;
 <a href="https://codecov.io/gh/x4b1/messenger" >
 <img src="https://codecov.io/gh/x4b1/messenger/graph/badge.svg?token=PJ6KKQUQFC"/>
 </a>&nbsp;
-<a href="https://goreportcard.com/report/github.com/xabi93/messenger" target="_blank"><img src="https://goreportcard.com/badge/github.com/xabi93/messenger" alt="go report" /></a>
+<a href="https://goreportcard.com/report/github.com/x4b1/messenger" target="_blank"><img src="https://goreportcard.com/badge/github.com/xabi93/messenger" alt="go report" /></a>
 </p>
