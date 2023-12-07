@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Messages</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .container {
+      display: block;
+    }
+
+    .table {
+      border-collapse: collapse;
+      margin: 25px 0;
+      font-size: 0.9em;
+      font-family: sans-serif;
+      min-width: 400px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .table thead tr {
+      background-color: #009879;
+      color: #ffffff;
+      text-align: left;
+    }
+
+    .table th,
+    .table td {
+      padding: 12px 15px;
+    }
+
+    .table tbody tr {
+      border-bottom: 1px solid #dddddd;
+    }
+
+    .table tbody tr:nth-of-type(even) {
+      background-color: #f3f3f3;
+    }
+
+    .table tbody tr:last-of-type {
+      border-bottom: 2px solid #009879;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    pre {
+      outline: 1px solid #ccc;
+      padding: 5px;
+      margin: 15px;
+    }
+
+    .string {
+      color: green;
+    }
+
+    .number {
+      color: darkorange;
+    }
+
+    .boolean {
+      color: blue;
+    }
+
+    .null {
+      color: magenta;
+    }
+
+    .key {
+      color: red;
+    }
+
+    .pagination {
+      display: block;
+    }
+
+    .pagination a {
+      background-color: #009879;
+      color: #ffffff;
+      text-align: left;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .pagination li {
+      list-style-type: none;
+      display: inline-block;
+    }
+
+    .pagination li a {
+      position: relative;
+      padding: 20px 25px;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    Total: {{.Total}}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Metadata</th>
+          <th>Payload</th>
+          <th>Published</th>
+          <th>At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Msgs}}
+        <tr>
+          <td>{{ .ID }}</td>
+          <td>
+            <ul>
+              {{range $key, $v := .Metadata}}
+              <li>
+                <strong>{{$key}}:</strong> {{$v}}
+              </li>
+              {{end}}
+            </ul>
+          </td>
+          <td>
+            <pre class="json">{{ prettyJson .Payload }}</pre>
+          </td>
+          <td>
+            {{ if .Published }}
+            ✅
+            {{ else }}
+            ❌
+            {{ end }}
+          </td>
+          <td class="created_at">{{ .At.UnixMilli }}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    <div class="pagination">
+      {{ $prev_page := (prevPage .Page)}}
+      {{if (ne $prev_page 0)}}
+      <li><a href=".?page={{$prev_page}}">prev</a></li>
+      {{end}}
+      <strong>{{.Page}}</strong>
+      <li><a href=".?page={{nextPage .Page}}">next</a></li>
+    </div>
+  </div>
+  <script>
+    function syntaxHighlight(json) {
+      if (!json) return ""; //no JSON from response
+
+      json = json
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return json.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        function (match) {
+          var cls = "number";
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+              cls = "key";
+            } else {
+              cls = "string";
+            }
+          } else if (/true|false/.test(match)) {
+            cls = "boolean";
+          } else if (/null/.test(match)) {
+            cls = "null";
+          }
+          return '<span class="' + cls + '">' + match + "</span>";
+        }
+      );
+    }
+    (function () {
+      var elements = document.getElementsByClassName("json");
+      for (var i = 0; i < elements.length; i++) {
+        var obj = JSON.parse(elements[i].innerText);
+        elements[i].innerHTML = syntaxHighlight(JSON.stringify(obj, undefined, 4));
+      }
+
+      var elements = document.getElementsByClassName("created_at");
+      for (var i = 0; i < elements.length; i++) {
+        var createdAt = new Date(parseInt(elements[i].innerText));
+        console.log(elements[i].innerText, createdAt)
+        const langCode = document.documentElement.lang || navigator.language;
+        const formatter = new Intl.DateTimeFormat(langCode, {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hourCycle: 'h23'
+        });
+        elements[i].innerHTML = formatter.format(createdAt);
+      }
+
+    })();
+  </script>
+</body>
+
+</html>

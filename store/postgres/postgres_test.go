@@ -1,4 +1,4 @@
-package pgx_test
+package postgres_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
+	"github.com/x4b1/messenger/internal/testhelpers"
 	store "github.com/x4b1/messenger/store/postgres/pgx"
-	"github.com/x4b1/messenger/store/postgres/test"
 )
 
 var (
@@ -21,12 +21,12 @@ var (
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	conn, clean, err := test.Setup(ctx)
+	pgContainer, err := testhelpers.CreatePostgresContainer(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dbURL = conn.Config().ConnString()
+	dbURL = pgContainer.ConnectionString
 
 	if connPool, err = pgxpool.New(ctx, dbURL); err != nil {
 		log.Fatal(err)
@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	clean()
+	_ = pgContainer.Terminate(context.Background())
 
 	os.Exit(code)
 }

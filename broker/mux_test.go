@@ -10,12 +10,12 @@ import (
 	"github.com/x4b1/messenger/broker"
 )
 
-func TestMultiBroker(t *testing.T) {
+func TestMux(t *testing.T) {
 	t.Parallel()
 
 	t.Run("missing metadata key", func(t *testing.T) {
 		t.Parallel()
-		_, err := broker.NewMultiBroker("")
+		_, err := broker.NewMux("")
 		require.ErrorIs(t, err, broker.ErrEmptyTargetMetadataKey)
 	})
 
@@ -77,8 +77,10 @@ func TestMultiBroker(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			mb, err := broker.NewMultiBroker(mdKey, broker.MultiBrokerWithBroker(mdVal, tc.trgtBroker))
+			mb, err := broker.NewMux(mdKey)
 			require.NoError(t, err)
+
+			mb.AddBroker(mdVal, tc.trgtBroker)
 
 			require.ErrorIs(t, mb.Publish(context.Background(), tc.msg), tc.err)
 

@@ -1,2 +1,2 @@
-// Package publish manages message publishing from a source to a queue.
+// Package broker knows how to publish messages to different message brokers.
 package broker

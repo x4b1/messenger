@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/inspect"
 )
 
 // errors.
@@ -62,16 +63,21 @@ type Storer struct {
 // Store saves messages.
 func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Message) error {
 	valueStr := make([]string, len(msgs))
-	totalArgs := 4
+	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
 		//nolint: gomnd // need it to point to each argument to insert
-		valueStr[i] = fmt.Sprintf("($%d, $%d, $%d, $%d)", i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4)
-		valueArgs = append(valueArgs, msg.ID(), metadata(msg.GetMetadata()), msg.GetPayload(), time.Now())
+		valueStr[i] = fmt.Sprintf(
+			"($%d, $%d, $%d, $%d, $%d)",
+			i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4, i*totalArgs+5)
+		valueArgs = append(
+			valueArgs,
+			msg.ID(), metadata(msg.GetMetadata()), msg.GetPayload(), msg.GetPublished(), msg.GetAt(),
+		)
 	}
 
 	stmt := fmt.Sprintf(
-		`INSERT INTO %q.%q (id, metadata, payload, created_at) VALUES %s`,
+		`INSERT INTO %q.%q (id, metadata, payload, published, created_at) VALUES %s`,
 		s.schema,
 		s.table,
 		strings.Join(valueStr, ","),
@@ -94,7 +100,15 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
-			`SELECT id, metadata, payload, created_at FROM %q.%q WHERE published = false ORDER BY created_at ASC LIMIT $1`,
+			`SELECT
+				id, metadata, payload, published, created_at
+			FROM
+				%q.%q
+			WHERE
+				published = false
+			ORDER BY
+				created_at ASC
+			LIMIT $1`,
 			s.schema,
 			s.table,
 		),
@@ -109,7 +123,7 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 	for rows.Next() {
 		msg := &messenger.GenericMessage{}
 		md := metadata(msg.Metadata)
-		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.At); err != nil {
+		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.Published, &msg.At); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
 		msg.Metadata = md
@@ -136,6 +150,53 @@ func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error 
 	}
 
 	return nil
+}
+
+// Published marks as published the given messages.
+func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
+	rows, err := s.db.Query(
+		ctx,
+		fmt.Sprintf(
+			`SELECT id, metadata, payload, published, created_at FROM %q.%q ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+			s.schema,
+			s.table,
+		),
+		q.Limit,
+		q.Limit*(q.Page-1),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("getting messages: %w", err)
+	}
+	defer rows.Close()
+
+	result := inspect.Result{
+		Msgs: make([]*messenger.GenericMessage, 0),
+	}
+	for rows.Next() {
+		msg := &messenger.GenericMessage{}
+		md := metadata(msg.Metadata)
+		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.Published, &msg.At); err != nil {
+			return nil, fmt.Errorf("scanning message: %w", err)
+		}
+		msg.Metadata = md
+		result.Msgs = append(result.Msgs, msg)
+	}
+
+	if result.Total, err = s.count(ctx, q); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (s Storer) count(ctx context.Context, _ *inspect.Query) (int, error) {
+	var count int
+	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.schema, s.table)).Scan(&count)
+	if err != nil {
+		return count, fmt.Errorf("counting messages: %w", err)
+	}
+
+	return count, nil
 }
 
 // ensureTable creates if not exists the table to store messages.

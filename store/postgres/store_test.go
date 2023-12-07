@@ -1,8 +1,9 @@
-package pgx_test
+package postgres_test
 
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/inspect"
 	"github.com/x4b1/messenger/store/postgres"
 	store "github.com/x4b1/messenger/store/postgres/pgx"
 )
@@ -231,4 +233,43 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		require.Empty(t, msgs)
 	})
+}
+
+func TestFind(t *testing.T) {
+	t.Parallel()
+
+	pg, _ := NewTestStore(t)
+
+	require := require.New(t)
+
+	publishMsgs := make([]messenger.Message, 15)
+	for i := 0; i < 15; i++ {
+		var err error
+		msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+		require.NoError(err)
+		msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
+		publishMsgs[i] = msg
+	}
+
+	require.NoError(pg.Store(context.Background(), nil, publishMsgs...))
+
+	result, err := pg.Find(context.Background(), &inspect.Query{
+		Pagination: inspect.Pagination{
+			Page:  1,
+			Limit: 10,
+		},
+	})
+	require.NoError(err)
+
+	require.Equal(15, result.Total)
+	require.Len(result.Msgs, 10)
+
+	expected := publishMsgs[5:15]
+	slices.Reverse(expected)
+	for i := range expected {
+		require.Equal(expected[i].ID(), result.Msgs[i].Id)
+		require.Equal(expected[i].GetMetadata(), result.Msgs[i].Metadata)
+		require.Equal(expected[i].GetPayload(), result.Msgs[i].Payload)
+		require.Equal(expected[i].GetPublished(), result.Msgs[i].Published)
+	}
 }
