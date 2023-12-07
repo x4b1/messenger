@@ -39,4 +39,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: run tests
-        run: make test
+        run: go test -race -coverprofile=coverage.out -covermode=atomic
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
