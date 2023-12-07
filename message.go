@@ -17,7 +17,7 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 	}
 
 	return &GenericMessage{
-		Id:       uuid.Must(uuid.NewRandom()).String(),
+		Id:       uuid.NewString(),
 		Payload:  payload,
 		Metadata: map[string]string{},
 		At:       time.Now(),

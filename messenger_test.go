@@ -194,6 +194,29 @@ func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
 	)
 }
 
+func (s *publisherSuite) TestFailsCleaning() {
+	expectedExpiration := time.Hour
+	s.publisher = messenger.NewMessenger(
+		s.sourceMock,
+		s.publishMock,
+		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithCleanUp(expectedExpiration),
+	)
+
+	cleaningError := errors.New("unknown err")
+
+	s.sourceMock.DeletePublishedByExpirationFunc = func(ctx context.Context, exp time.Duration) error {
+		return cleaningError
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(time.Second * 2)
+		cancel()
+	}()
+	s.ErrorIs(s.publisher.Start(ctx), cleaningError)
+}
+
 func TestPublisher(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, new(publisherSuite))
