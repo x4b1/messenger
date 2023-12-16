@@ -11,14 +11,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.26.5
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.5
 	github.com/docker/go-connections v0.4.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/jackc/pgx/v5 v5.5.1
 	github.com/stretchr/testify v1.8.4
 	github.com/testcontainers/testcontainers-go v0.26.0
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.26.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.26.0
-	google.golang.org/api v0.153.0
-	google.golang.org/grpc v1.59.0
+	google.golang.org/api v0.154.0
+	google.golang.org/grpc v1.60.0
 )
 
 require (
@@ -50,6 +50,7 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v24.0.7+incompatible // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -85,6 +86,8 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
