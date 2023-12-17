@@ -12,6 +12,7 @@ type Instance interface {
 	QueryRow(ctx context.Context, sql string, args ...any) Row
 }
 
+// Rows knows how to scan multiple query rows.
 type Rows interface {
 	Row
 	// Close closes the rows, making the connection ready for use again. It is safe
@@ -27,10 +28,12 @@ type Rows interface {
 	Next() bool
 }
 
+// Row knows how to scan an query row.
 type Row interface {
 	Scan(dest ...any) error
 }
 
+// Executor knows how to run a sql query.
 type Executor interface {
 	Exec(ctx context.Context, sql string, args ...any) error
 }

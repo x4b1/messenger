@@ -14,7 +14,7 @@ const (
 
 //go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorLogger
 
-// Source is the interface that wraps the message retrieval and update methods.
+// Store is the interface that wraps the message retrieval and update methods.
 type Store interface {
 	// List unpublished messages with a batch size
 	Messages(ctx context.Context, batch int) ([]Message, error)
@@ -50,24 +50,28 @@ func (e *fatalError) Unwrap() error {
 // Option defines the optional parameters for messenger.
 type Option func(*Messenger)
 
+// WithPublishBatchSize replaces the default published batch size.
 func WithPublishBatchSize(bs int) Option {
 	return func(w *Messenger) {
 		w.batchSize = bs
 	}
 }
 
+// WithInterval replaces the default interval duration.
 func WithInterval(p time.Duration) Option {
 	return func(w *Messenger) {
 		w.interval = p
 	}
 }
 
+// WithErrorLogger replaces the default error logger.
 func WithErrorLogger(l ErrorLogger) Option {
 	return func(w *Messenger) {
 		w.logger = l
 	}
 }
 
+// WithCleanUp enables cleanup process setting an expiration time for messages.
 func WithCleanUp(expiration time.Duration) Option {
 	return func(w *Messenger) {
 		w.expiration = expiration

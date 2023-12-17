@@ -28,12 +28,12 @@ const (
 var errAws = errors.New("aws error")
 
 var msg = &messenger.GenericMessage{
-	Id: uuid.Must(uuid.NewRandom()).String(),
-	Metadata: map[string]string{
+	MsgID: uuid.NewString(),
+	MsgMetadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
 		metaKey:        orderingValue,
 	},
-	Payload: []byte("some message"),
+	MsgPayload: []byte("some message"),
 }
 
 func TestFailsGettingQueueURL(t *testing.T) {
@@ -53,11 +53,13 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		sqsMock := ClientMock{
+			//nolint:lll
 			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return &sqs.GetQueueUrlOutput{
 					QueueUrl: aws.String(queueURL),
 				}, nil
 			},
+			//nolint:lll
 			SendMessageFunc: func(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
 				return nil, errAws
 			},
@@ -78,10 +80,10 @@ func TestPublish(t *testing.T) {
 			name: "no ordering key",
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: nil,
-				MessageBody:            aws.String(string(msg.GetPayload())),
+				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				QueueUrl: aws.String(queueURL),
@@ -92,10 +94,10 @@ func TestPublish(t *testing.T) {
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
-				MessageBody:            aws.String(string(msg.GetPayload())),
+				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.GetMetadata()["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				QueueUrl: aws.String(queueURL),
@@ -103,13 +105,17 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
+			opts: []publisher.Option{
+				publisher.WithFifoQueue(true),
+				publisher.WithDefaultOrderingKey(defaultOrdKey),
+				publisher.WithMetaOrderingKey(metaKey),
+			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
-				MessageBody:            aws.String(string(msg.GetPayload())),
+				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				QueueUrl: aws.String(queueURL),
@@ -124,6 +130,7 @@ func TestPublish(t *testing.T) {
 			ctx := context.Background()
 
 			sqsMock := ClientMock{
+				//nolint:lll
 				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return &sqs.GetQueueUrlOutput{
 						QueueUrl: aws.String(queueURL),
@@ -137,7 +144,7 @@ func TestPublish(t *testing.T) {
 			r.NoError(pub.Publish(ctx, msg))
 
 			r.Len(sqsMock.SendMessageCalls(), 1)
-			r.Equal(sqsMock.SendMessageCalls()[0].SendMessageInput, tc.expectedInput)
+			r.Equal(tc.expectedInput, sqsMock.SendMessageCalls()[0].SendMessageInput)
 		})
 	}
 }

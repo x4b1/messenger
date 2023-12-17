@@ -9,11 +9,13 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// PostgresContainer contains a docker instance of postgres and the url where is exposed.
 type PostgresContainer struct {
 	*postgres.PostgresContainer
 	ConnectionString string
 }
 
+// CreatePostgresContainer starts a postgres container and returns its instance.
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:16.1-alpine"),

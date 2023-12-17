@@ -7,18 +7,18 @@ import (
 	"github.com/x4b1/messenger"
 )
 
+// Errors ...
 var (
-	ErrEmptyTargetMetadataKey         = errors.New("empty target metadata key")
+	ErrEmptyTarMetadataKey            = errors.New("empty target metadata key")
 	ErrMessageDoesNotMatchWithBrokers = errors.New("message does not match with any broker")
 )
 
 var _ Broker = &Mux{}
 
-// Mux returns and empty Mux,
-// if the targetKey is empty it returns an error.
+// NewMux returns an empty Mux target, if the targetKey is empty it returns ErrEmptyTarMetadataKey error.
 func NewMux(targetKey string) (*Mux, error) {
 	if len(targetKey) == 0 {
-		return nil, ErrEmptyTargetMetadataKey
+		return nil, ErrEmptyTarMetadataKey
 	}
 
 	mb := &Mux{
@@ -45,7 +45,7 @@ func (mb *Mux) AddBroker(value string, b Broker) {
 // Publish routes the message to a broker depending if it matches the metadata key and metadata value.
 // It it does not match it returns an error.
 func (mb Mux) Publish(ctx context.Context, msg messenger.Message) error {
-	mdVal, ok := msg.GetMetadata()[mb.mdKey]
+	mdVal, ok := msg.Metadata()[mb.mdKey]
 	if !ok {
 		return ErrMessageDoesNotMatchWithBrokers
 	}

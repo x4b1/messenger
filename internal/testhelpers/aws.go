@@ -11,12 +11,14 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
+// LocalStackContainer contains a docker instance of local stack and the aws configuration where is exposed.
 type LocalStackContainer struct {
 	Config aws.Config
 
 	*localstack.LocalStackContainer
 }
 
+// CreateLocalStackContainer starts a local stack container with SNS and SQS services, and returns its instance.
 func CreateLocalStackContainer(ctx context.Context) (*LocalStackContainer, error) {
 	lsContainer, err := localstack.RunContainer(ctx,
 		testcontainers.WithImage("localstack/localstack:3.0.2"),

@@ -35,6 +35,7 @@ func (w *wrapper) Ping(ctx context.Context) error {
 }
 
 func (w *wrapper) Query(ctx context.Context, sql string, args ...any) (postgres.Rows, error) {
+	//nolint:sqlclosecheck,rowserrcheck // just propagating
 	return w.instance.Query(ctx, sql, args...)
 }
 

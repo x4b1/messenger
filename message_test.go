@@ -23,17 +23,17 @@ func TestGenericMessage(t *testing.T) {
 		require.NoError(t, err)
 		msg.SetMetadata(mdKey, mdValue)
 
-		require.NotEqual(t, uuid.Nil.String(), msg.Id)
-		require.NotEmpty(t, msg.Id)
-		require.Equal(t, msg.Id, msg.ID())
+		require.NotEqual(t, uuid.Nil.String(), msg.ID())
+		require.NotEmpty(t, msg.ID())
+		require.Equal(t, msg.MsgID, msg.ID())
 
-		require.Equal(t, map[string]string{mdKey: mdValue}, msg.Metadata)
-		require.Equal(t, msg.Metadata, msg.GetMetadata())
+		require.Equal(t, map[string]string{mdKey: mdValue}, msg.Metadata())
+		require.Equal(t, msg.MsgMetadata, msg.Metadata())
 
-		require.Equal(t, msg.Payload, []byte(somePayload))
-		require.Equal(t, msg.Payload, msg.GetPayload())
+		require.Equal(t, msg.MsgPayload, []byte(somePayload))
+		require.Equal(t, msg.MsgPayload, msg.Payload())
 
-		require.Equal(t, msg.Published, msg.GetPublished())
-		require.Equal(t, msg.At, msg.GetAt())
+		require.Equal(t, msg.MsgPublished, msg.Published())
+		require.Equal(t, msg.MsgAt, msg.At())
 	})
 }

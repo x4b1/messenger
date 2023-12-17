@@ -52,8 +52,8 @@ type Publisher struct {
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	_, err := p.topic.Publish(ctx, &pubsub.Message{
-		Attributes:  msg.GetMetadata(),
-		Data:        msg.GetPayload(),
+		Attributes:  msg.Metadata(),
+		Data:        msg.Payload(),
 		OrderingKey: p.orderingKey(msg),
 	}).Get(ctx)
 
@@ -63,7 +63,7 @@ func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
 func (p Publisher) orderingKey(msg messenger.Message) string {
-	key, ok := msg.GetMetadata()[p.metaOrdKey]
+	key, ok := msg.Metadata()[p.metaOrdKey]
 	if ok {
 		return key
 	}

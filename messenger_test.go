@@ -32,9 +32,9 @@ func (s *publisherSuite) SetupTest() {
 
 	s.batchSize = 10
 	s.messages = []messenger.Message{
-		&messenger.GenericMessage{Id: "87935650-9d6c-4752-80a0-8bcdf321680e"},
-		&messenger.GenericMessage{Id: "6d91abdd-561d-4d56-959f-f060b4c866ad"},
-		&messenger.GenericMessage{Id: "e6b11966-5b4a-4d3a-84c0-446fb78c616d"},
+		&messenger.GenericMessage{MsgID: "87935650-9d6c-4752-80a0-8bcdf321680e"},
+		&messenger.GenericMessage{MsgID: "6d91abdd-561d-4d56-959f-f060b4c866ad"},
+		&messenger.GenericMessage{MsgID: "e6b11966-5b4a-4d3a-84c0-446fb78c616d"},
 	}
 
 	s.publisher = messenger.NewMessenger(
@@ -61,8 +61,8 @@ func (s *publisherSuite) TestPublishMessages() {
 	}
 
 	err := s.publisher.Publish(context.Background())
-	s.Error(err)
-	s.ErrorIs(err, publisherror)
+	s.Require().Error(err)
+	s.Require().ErrorIs(err, publisherror)
 
 	s.Len(s.sourceMock.MessagesCalls(), 1)
 	s.Equal(s.sourceMock.MessagesCalls()[0].Batch, s.batchSize)
@@ -84,7 +84,7 @@ func (s *publisherSuite) TestFailsGettingMessages() {
 		return nil, gettingMessagesErr
 	}
 
-	s.ErrorIs(s.publisher.Publish(context.Background()), gettingMessagesErr)
+	s.Require().ErrorIs(s.publisher.Publish(context.Background()), gettingMessagesErr)
 }
 
 func (s *publisherSuite) TestFailsSavingPublishedMessages() {
@@ -103,12 +103,12 @@ func (s *publisherSuite) TestFailsSavingPublishedMessages() {
 	s.Len(errs, 3)
 
 	for _, err := range errs {
-		s.ErrorIs(err, savingMessagesErr)
+		s.Require().ErrorIs(err, savingMessagesErr)
 	}
 }
 
 func (s *publisherSuite) TestNotCallSavePublishedMessagesWhenNoMessages() {
-	s.NoError(s.publisher.Publish(context.Background()))
+	s.Require().NoError(s.publisher.Publish(context.Background()))
 
 	s.Empty(s.publishMock.PublishCalls())
 	s.Empty(s.sourceMock.PublishedCalls())
@@ -126,7 +126,7 @@ func (s *publisherSuite) TestStartsAndStopsWithContext() {
 		return []messenger.Message{}, nil
 	}
 
-	s.NoError(s.publisher.Start(ctx))
+	s.Require().NoError(s.publisher.Start(ctx))
 }
 
 func (s *publisherSuite) TestStartsMessagesReturnsError() {
@@ -136,7 +136,7 @@ func (s *publisherSuite) TestStartsMessagesReturnsError() {
 		return nil, messagesErr
 	}
 
-	s.Error(s.publisher.Start(ctx))
+	s.Require().Error(s.publisher.Start(ctx))
 }
 
 func (s *publisherSuite) TestStartsPublishReturnsError() {
@@ -155,9 +155,9 @@ func (s *publisherSuite) TestStartsPublishReturnsError() {
 		return publishErr
 	}
 
-	s.NoError(s.publisher.Start(ctx))
+	s.Require().NoError(s.publisher.Start(ctx))
 	s.Len(s.errLoggerMock.ErrorCalls(), 1)
-	s.ErrorIs(s.errLoggerMock.ErrorCalls()[0].Err, publishErr)
+	s.Require().ErrorIs(s.errLoggerMock.ErrorCalls()[0].Err, publishErr)
 }
 
 func (s *publisherSuite) TestStartWithoutCleanSetupNotStartsProcess() {
@@ -166,7 +166,7 @@ func (s *publisherSuite) TestStartWithoutCleanSetupNotStartsProcess() {
 		time.Sleep(time.Second)
 		cancel()
 	}()
-	s.NoError(s.publisher.Start(ctx))
+	s.Require().NoError(s.publisher.Start(ctx))
 
 	s.Empty(s.sourceMock.DeletePublishedByExpirationCalls())
 }
@@ -185,9 +185,9 @@ func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
 		time.Sleep(time.Second * 2)
 		cancel()
 	}()
-	s.NoError(s.publisher.Start(ctx))
+	s.Require().NoError(s.publisher.Start(ctx))
 
-	s.GreaterOrEqual(len(s.sourceMock.DeletePublishedByExpirationCalls()), 1)
+	s.NotEmpty(s.sourceMock.DeletePublishedByExpirationCalls())
 	s.Equal(
 		expectedExpiration,
 		s.sourceMock.DeletePublishedByExpirationCalls()[0].Exp,
@@ -214,7 +214,7 @@ func (s *publisherSuite) TestFailsCleaning() {
 		time.Sleep(time.Second * 2)
 		cancel()
 	}()
-	s.ErrorIs(s.publisher.Start(ctx), cleaningError)
+	s.Require().ErrorIs(s.publisher.Start(ctx), cleaningError)
 }
 
 func TestPublisher(t *testing.T) {

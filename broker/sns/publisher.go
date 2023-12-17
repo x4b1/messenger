@@ -80,7 +80,7 @@ type Publisher struct {
 
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
-	md := msg.GetMetadata()
+	md := msg.Metadata()
 	att := make(map[string]types.MessageAttributeValue, len(md))
 	for k, v := range md {
 		att[k] = types.MessageAttributeValue{
@@ -94,7 +94,7 @@ func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 		&sns.PublishInput{
 			MessageDeduplicationId: p.messageDeduplication(msg),
 			MessageAttributes:      att,
-			Message:                aws.String(string(msg.GetPayload())),
+			Message:                aws.String(string(msg.Payload())),
 			TopicArn:               aws.String(p.topicARN),
 			MessageGroupId:         p.orderingKey(msg),
 		})
@@ -121,7 +121,7 @@ func (p Publisher) orderingKey(msg messenger.Message) *string {
 		return nil
 	}
 
-	key, ok := msg.GetMetadata()[p.metaOrdKey]
+	key, ok := msg.Metadata()[p.metaOrdKey]
 	if ok {
 		return aws.String(key)
 	}

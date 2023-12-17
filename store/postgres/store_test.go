@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -41,7 +42,7 @@ func TestCustomTable(t *testing.T) {
 
 	var count int
 	require.NoError(t, row.Scan(&count))
-	require.Equal(t, count, 1)
+	require.Equal(t, 1, count)
 }
 
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
@@ -83,7 +84,7 @@ func TestStorePublishMessages(t *testing.T) {
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
-			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+			msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 			require.NoError(err)
 			msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
 			msg.SetMetadata("test", "with transaction")
@@ -98,8 +99,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
-			require.Equal(msg.GetPayload(), msgs[i].GetPayload())
+			require.Equal(msg.Metadata(), msgs[i].Metadata())
+			require.Equal(msg.Payload(), msgs[i].Payload())
 		}
 
 		require.NoError(pg.Published(ctx, msgs...))
@@ -109,7 +110,7 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
+			require.Equal(msg.Metadata(), msgs[i].Metadata())
 		}
 	})
 
@@ -123,7 +124,7 @@ func TestStorePublishMessages(t *testing.T) {
 		publishMsgs := make([]messenger.Message, totalMsgs)
 		for i := 0; i < totalMsgs; i++ {
 			var err error
-			msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+			msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 			require.NoError(err)
 			msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
 			msg.SetMetadata("test", "without transaction")
@@ -137,8 +138,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, batch)
 		for i, msg := range publishMsgs[:batch] {
-			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
-			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
+			require.Equal(msg.Metadata(), msgs[i].Metadata())
+			require.Equal(msg.Metadata(), msgs[i].Metadata())
 		}
 
 		require.NoError(pg.Published(context.Background(), msgs...))
@@ -148,8 +149,8 @@ func TestStorePublishMessages(t *testing.T) {
 
 		require.Len(msgs, totalMsgs-batch)
 		for i, msg := range publishMsgs[batch:] {
-			require.Equal(msg.GetMetadata(), msgs[i].GetMetadata())
-			require.Equal(msg.GetPayload(), msgs[i].GetPayload())
+			require.Equal(msg.Metadata(), msgs[i].Metadata())
+			require.Equal(msg.Payload(), msgs[i].Payload())
 		}
 	})
 }
@@ -215,8 +216,14 @@ func TestDeletePublishedByExpiration(t *testing.T) {
 
 		eventID := uuid.Must(uuid.NewRandom())
 
-		_, err := db.Exec(context.Background(), fmt.Sprintf(`
-			INSERT INTO %q (id, metadata, payload, published, created_at) VALUES ($1, $2, $3, true, $4)`, postgres.DefaultMessagesTable),
+		_, err := db.Exec(context.Background(),
+			fmt.Sprintf(`
+				INSERT INTO
+					%q
+					(id, metadata, payload, published, created_at)
+				VALUES
+					($1, $2, $3, true, $4)`,
+				postgres.DefaultMessagesTable),
 			eventID,
 			"{}",
 			"test",
@@ -245,7 +252,7 @@ func TestFind(t *testing.T) {
 	publishMsgs := make([]messenger.Message, 15)
 	for i := 0; i < 15; i++ {
 		var err error
-		msg, err := messenger.NewMessage([]byte(fmt.Sprintf("%d", i+1)))
+		msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 		require.NoError(err)
 		msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
 		publishMsgs[i] = msg
@@ -267,9 +274,9 @@ func TestFind(t *testing.T) {
 	expected := publishMsgs[5:15]
 	slices.Reverse(expected)
 	for i := range expected {
-		require.Equal(expected[i].ID(), result.Msgs[i].Id)
-		require.Equal(expected[i].GetMetadata(), result.Msgs[i].Metadata)
-		require.Equal(expected[i].GetPayload(), result.Msgs[i].Payload)
-		require.Equal(expected[i].GetPublished(), result.Msgs[i].Published)
+		require.Equal(expected[i].ID(), result.Msgs[i].ID())
+		require.Equal(expected[i].Metadata(), result.Msgs[i].Metadata())
+		require.Equal(expected[i].Payload(), result.Msgs[i].Payload())
+		require.Equal(expected[i].Published(), result.Msgs[i].Published())
 	}
 }

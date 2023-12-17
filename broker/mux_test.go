@@ -16,14 +16,14 @@ func TestMux(t *testing.T) {
 	t.Run("missing metadata key", func(t *testing.T) {
 		t.Parallel()
 		_, err := broker.NewMux("")
-		require.ErrorIs(t, err, broker.ErrEmptyTargetMetadataKey)
+		require.ErrorIs(t, err, broker.ErrEmptyTarMetadataKey)
 	})
 
 	mdKey := "some-key"
 	mdVal := "some value"
 	errUnexpected := errors.New("unexpected err")
 
-	publishMsg := &messenger.GenericMessage{Metadata: map[string]string{mdKey: mdVal}}
+	publishMsg := &messenger.GenericMessage{MsgMetadata: map[string]string{mdKey: mdVal}}
 
 	for _, tc := range []struct {
 		name       string
@@ -43,7 +43,7 @@ func TestMux(t *testing.T) {
 		},
 		{
 			name:       "message metadata value does not match",
-			msg:        &messenger.GenericMessage{Metadata: map[string]string{mdKey: "other-value"}},
+			msg:        &messenger.GenericMessage{MsgMetadata: map[string]string{mdKey: "other-value"}},
 			trgtBroker: &broker.BrokerMock{},
 			err:        broker.ErrMessageDoesNotMatchWithBrokers,
 			asserts: func(t *testing.T, b *broker.BrokerMock) {

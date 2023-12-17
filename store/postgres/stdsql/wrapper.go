@@ -28,6 +28,7 @@ func (c *conn) Ping(ctx context.Context) error {
 }
 
 func (c *conn) Query(ctx context.Context, sql string, args ...any) (postgres.Rows, error) {
+	//nolint:rowserrcheck // just propagating rows.
 	r, err := c.db.QueryContext(ctx, sql, args...)
 	return &rows{r}, err
 }

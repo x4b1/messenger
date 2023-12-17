@@ -46,17 +46,17 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 	srv, topic := initPubsub(ctx, t)
 
 	m := &messenger.GenericMessage{
-		Id:       uuid.Must(uuid.NewRandom()).String(),
-		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
-		Payload:  []byte("some message"),
+		MsgID:       uuid.NewString(),
+		MsgMetadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
+		MsgPayload:  []byte("some message"),
 	}
 
 	require.NoError(t, pubsubpublish.New(topic).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
-	require.Equal(t, m.Payload, msgs[0].Data)
-	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Equal(t, m.Payload(), msgs[0].Data)
+	require.Equal(t, m.Metadata(), msgs[0].Attributes)
 	require.Empty(t, msgs[0].OrderingKey)
 }
 
@@ -67,9 +67,9 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	srv, topic := initPubsub(ctx, t)
 
 	m := &messenger.GenericMessage{
-		Id:       uuid.Must(uuid.NewRandom()).String(),
-		Metadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
-		Payload:  []byte("some message"),
+		MsgID:       uuid.NewString(),
+		MsgMetadata: map[string]string{"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586"},
+		MsgPayload:  []byte("some message"),
 	}
 
 	ordKey := "default-ord-key"
@@ -77,8 +77,8 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
-	require.Equal(t, m.Payload, msgs[0].Data)
-	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Equal(t, m.Payload(), msgs[0].Data)
+	require.Equal(t, m.Metadata(), msgs[0].Attributes)
 	require.Equal(t, ordKey, msgs[0].OrderingKey)
 }
 
@@ -92,16 +92,16 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	orderingValue := "value-1"
 
 	m := &messenger.GenericMessage{
-		Id:       uuid.Must(uuid.NewRandom()).String(),
-		Metadata: map[string]string{metaKey: orderingValue},
-		Payload:  []byte("some message"),
+		MsgID:       uuid.NewString(),
+		MsgMetadata: map[string]string{metaKey: orderingValue},
+		MsgPayload:  []byte("some message"),
 	}
 
 	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
-	require.Equal(t, m.Payload, msgs[0].Data)
-	require.Equal(t, m.Metadata, msgs[0].Attributes)
+	require.Equal(t, m.Payload(), msgs[0].Data)
+	require.Equal(t, m.Metadata(), msgs[0].Attributes)
 	require.Equal(t, orderingValue, msgs[0].OrderingKey)
 }
