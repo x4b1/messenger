@@ -32,6 +32,7 @@ func main() {
 	}
 }
 
+//nolint:gocognit //main function
 func run() error {
 	ctx := context.Background()
 
@@ -73,6 +74,7 @@ func run() error {
 
 	go func() {
 		log.Println("listening at: http://localhost:8080")
+		//nolint:gosec // leaving simple for the example.
 		if err := http.ListenAndServe(net.JoinHostPort("", "8080"), nil); err != nil {
 			log.Fatal(fmt.Errorf("serving http: %w", err))
 		}
@@ -84,7 +86,7 @@ func run() error {
 			msgs, err := sqsClient.ReceiveMessage(ctx, &aws_sqs.ReceiveMessageInput{
 				QueueUrl:              pubsub.queue.QueueUrl,
 				MessageAttributeNames: []string{"trace_id"},
-				WaitTimeSeconds:       20,
+				WaitTimeSeconds:       20, //nolint:gomnd // simplicity
 			})
 			if err != nil {
 				log.Fatal(fmt.Errorf("receiving sqs messages: %w", err))
@@ -97,7 +99,9 @@ func run() error {
 
 				bAtt, _ := json.Marshal(att)
 
+				//nolint: forbidigo // need to print command line to show result
 				fmt.Printf("\t - attributes: %s\n", string(bAtt))
+				//nolint: forbidigo // need to print command line to show result
 				fmt.Printf("\t - body: %s\n", aws.ToString(msg.Body))
 
 				if _, err := sqsClient.DeleteMessage(ctx, &aws_sqs.DeleteMessageInput{
@@ -136,9 +140,11 @@ func publishEvents(ctx context.Context, s *pgx.Store) error {
 	}
 }
 
+const messageBatch = 3
+
 func generateMessages() []messenger.Message {
 	traceID := uuid.NewString()
-	msgs := make([]messenger.Message, 3)
+	msgs := make([]messenger.Message, messageBatch)
 
 	for i := range msgs {
 		msg, _ := messenger.NewMessage([]byte(`{"hello": "word"}`))

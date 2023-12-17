@@ -27,12 +27,12 @@ const (
 var errAws = errors.New("aws error")
 
 var msg = &messenger.GenericMessage{
-	Id: uuid.Must(uuid.NewRandom()).String(),
-	Metadata: map[string]string{
+	MsgID: uuid.NewString(),
+	MsgMetadata: map[string]string{
 		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
 		metaKey:        orderingValue,
 	},
-	Payload: []byte("some message"),
+	MsgPayload: []byte("some message"),
 }
 
 func TestPublish(t *testing.T) {
@@ -41,6 +41,7 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		snsMock := ClientMock{
+			//nolint:lll
 			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
 				return nil, errAws
 			},
@@ -61,10 +62,10 @@ func TestPublish(t *testing.T) {
 			name: "no ordering key",
 			expectedInput: &sns.PublishInput{
 				MessageDeduplicationId: nil,
-				Message:                aws.String(string(msg.Payload)),
+				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				TopicArn: aws.String(topicARN),
@@ -74,11 +75,11 @@ func TestPublish(t *testing.T) {
 			name: "default ordering key",
 			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sns.PublishInput{
-				MessageDeduplicationId: aws.String(msg.Id),
-				Message:                aws.String(string(msg.Payload)),
+				MessageDeduplicationId: aws.String(msg.ID()),
+				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				TopicArn: aws.String(topicARN),
@@ -86,13 +87,17 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey), publisher.WithMetaOrderingKey(metaKey)},
+			opts: []publisher.Option{
+				publisher.WithFifoQueue(true),
+				publisher.WithDefaultOrderingKey(defaultOrdKey),
+				publisher.WithMetaOrderingKey(metaKey),
+			},
 			expectedInput: &sns.PublishInput{
-				MessageDeduplicationId: aws.String(msg.Id),
-				Message:                aws.String(string(msg.Payload)),
+				MessageDeduplicationId: aws.String(msg.ID()),
+				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata["aggregate_id"])},
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 				},
 				TopicArn: aws.String(topicARN),
@@ -114,7 +119,7 @@ func TestPublish(t *testing.T) {
 			r.NoError(pub.Publish(ctx, msg))
 
 			r.Len(snsMock.PublishCalls(), 1)
-			r.Equal(snsMock.PublishCalls()[0].Params, tc.expectedInput)
+			r.Equal(tc.expectedInput, snsMock.PublishCalls()[0].Params)
 		})
 	}
 }

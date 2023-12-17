@@ -19,7 +19,7 @@ var (
 // DefaultMessagesTable is the table name that will be used if no other table name provided.
 const DefaultMessagesTable = "messages"
 
-// WithInstance returns Store source initialised with the given connection instance and config.
+// New returns a postgres store initialised with the given connection instance and config.
 func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
@@ -52,6 +52,7 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 	return &s, nil
 }
 
+// Storer is the implementation of messages store for postgres.
 type Storer struct {
 	db Instance
 
@@ -72,7 +73,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 			i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4, i*totalArgs+5)
 		valueArgs = append(
 			valueArgs,
-			msg.ID(), metadata(msg.GetMetadata()), msg.GetPayload(), msg.GetPublished(), msg.GetAt(),
+			msg.ID(), metadata(msg.Metadata()), msg.Payload(), msg.Published(), msg.At(),
 		)
 	}
 
@@ -122,11 +123,11 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 	msgs := make([]messenger.Message, 0, batch)
 	for rows.Next() {
 		msg := &messenger.GenericMessage{}
-		md := metadata(msg.Metadata)
-		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.Published, &msg.At); err != nil {
+		md := metadata(msg.MsgMetadata)
+		if err := rows.Scan(&msg.MsgID, &md, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
-		msg.Metadata = md
+		msg.MsgMetadata = md
 		msgs = append(msgs, msg)
 	}
 
@@ -152,7 +153,7 @@ func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error 
 	return nil
 }
 
-// Published marks as published the given messages.
+// Find returns a list of paginated messages filtered by the given query.
 func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
 	rows, err := s.db.Query(
 		ctx,
@@ -174,11 +175,11 @@ func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, er
 	}
 	for rows.Next() {
 		msg := &messenger.GenericMessage{}
-		md := metadata(msg.Metadata)
-		if err := rows.Scan(&msg.Id, &md, &msg.Payload, &msg.Published, &msg.At); err != nil {
+		md := metadata(msg.MsgMetadata)
+		if err := rows.Scan(&msg.MsgID, &md, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
-		msg.Metadata = md
+		msg.MsgMetadata = md
 		result.Msgs = append(result.Msgs, msg)
 	}
 
@@ -231,7 +232,7 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 			metadata JSONB NOT NULL,
 			payload %s,
 			published BOOLEAN DEFAULT FALSE,
-			created_at TIMESTAMP NOT NULL DEFAULT NOW()
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`,
 			s.schema,
 			s.table,
@@ -255,6 +256,8 @@ func currentSchema(ctx context.Context, db Instance) (string, error) {
 	return schemaName, nil
 }
 
+// DeletePublishedByExpiration performs a hard delete of the messages with the column published to true
+// and created at lower than the given duration.
 func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
 	err := s.db.Exec(
 		ctx,

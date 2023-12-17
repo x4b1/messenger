@@ -17,66 +17,66 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 	}
 
 	return &GenericMessage{
-		Id:       uuid.NewString(),
-		Payload:  payload,
-		Metadata: map[string]string{},
-		At:       time.Now(),
+		MsgID:       uuid.NewString(),
+		MsgPayload:  payload,
+		MsgMetadata: map[string]string{},
+		MsgAt:       time.Now(),
 	}, nil
 }
 
 // A Message represents a message to be sent to message message queue.
 type Message interface {
 	ID() string
-	GetMetadata() map[string]string
-	GetPayload() []byte
-	GetPublished() bool
-	GetAt() time.Time
+	Metadata() map[string]string
+	Payload() []byte
+	Published() bool
+	At() time.Time
 }
 
 // GenericMessage represents a message to be sent to message message queue.
 // It implements the Message interface.
 type GenericMessage struct {
 	// Unique identifier for the message.
-	Id string //nolint:revive,stylecheck // conflicts with method name
+	MsgID string
 	// Contains the message header to be sent by the messenger to the message queue.
-	Metadata map[string]string
+	MsgMetadata map[string]string
 	// Payload is the message payload. Must not be empty
-	Payload []byte
+	MsgPayload []byte
 	// Message is published to broker or not.
-	Published bool
+	MsgPublished bool
 	// At represent the moment of the message creation.
-	At time.Time
+	MsgAt time.Time
 }
 
-// ID adds the given key-value pair to the message metadata.
+// ID returns the unique identifier of the message.
 func (m *GenericMessage) ID() string {
-	return m.Id
+	return m.MsgID
 }
 
 // SetMetadata sets the given key-value pair to the message metadata.
 // If the key already exists, it replaces the value.
 func (m *GenericMessage) SetMetadata(key, value string) *GenericMessage {
-	m.Metadata[key] = value
+	m.MsgMetadata[key] = value
 
 	return m
 }
 
-// GetMetadata returns the message metadata.
-func (m *GenericMessage) GetMetadata() map[string]string {
-	return m.Metadata
+// Metadata returns the message metadata.
+func (m *GenericMessage) Metadata() map[string]string {
+	return m.MsgMetadata
 }
 
-// GetPayload returns the message payload.
-func (m *GenericMessage) GetPayload() []byte {
-	return m.Payload
+// Payload returns the message payload.
+func (m *GenericMessage) Payload() []byte {
+	return m.MsgPayload
 }
 
-// GetPublished returns if message is published to broker.
-func (m *GenericMessage) GetPublished() bool {
-	return m.Published
+// Published returns if message is published to broker.
+func (m *GenericMessage) Published() bool {
+	return m.MsgPublished
 }
 
-// GetAt returns message creation moment.
-func (m *GenericMessage) GetAt() time.Time {
-	return m.At
+// At returns message creation moment.
+func (m *GenericMessage) At() time.Time {
+	return m.MsgAt
 }

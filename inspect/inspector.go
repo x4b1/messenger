@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"text/template"
+	"time"
 
 	"github.com/x4b1/messenger"
 )
@@ -18,34 +19,41 @@ const defaultLimit = 25
 //go:embed index.tmpl
 var indexFile string
 
+// Pagination defines a page and limit to get paginated messages.
 type Pagination struct {
 	Page  int
 	Limit int
 }
 
+// Query defines the filters to request messages.
 type Query struct {
 	Pagination
 }
 
+// Result defines the paginated messages.
 type Result struct {
 	Total int
 	Msgs  []*messenger.GenericMessage
 }
 
+// Store knows how to retrieve messages.
 type Store interface {
 	Find(ctx context.Context, q *Query) (*Result, error)
 }
 
+// NewInspector returns a new instance of the Inspector.
 func NewInspector(s Store) *Inspector {
 	return &Inspector{s}
 }
 
 var _ http.Handler = (*Inspector)(nil)
 
+// Inspector implements an http handler that serves a UI that shows stored messages.
 type Inspector struct {
 	s Store
 }
 
+// ServeHTTP is a httpHandler that renders the index.tmpl with the messages stored.
 func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("index").Funcs(
 		template.FuncMap{
@@ -67,6 +75,9 @@ func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 
 				return page
+			},
+			"formatDate": func(d time.Time) string {
+				return d.Format(time.RFC3339)
 			},
 		},
 	).Parse(indexFile)
