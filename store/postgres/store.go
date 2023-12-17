@@ -73,7 +73,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 			i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4, i*totalArgs+5)
 		valueArgs = append(
 			valueArgs,
-			msg.ID(), metadata(msg.Metadata()), msg.Payload(), msg.Published(), msg.At(),
+			msg.ID(), metadata(msg.Metadata()), msg.Payload(), msg.Published(), msg.At().UTC(),
 		)
 	}
 
@@ -232,7 +232,7 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 			metadata JSONB NOT NULL,
 			payload %s,
 			published BOOLEAN DEFAULT FALSE,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+			created_at TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
 			s.schema,
 			s.table,
@@ -262,7 +262,7 @@ func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duratio
 	err := s.db.Exec(
 		ctx,
 		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.schema, s.table),
-		time.Now().Add(-d),
+		time.Now().UTC().Add(-d),
 	)
 	if err != nil {
 		return fmt.Errorf("deleting published messages: %w", err)
