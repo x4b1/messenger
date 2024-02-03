@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.4
 
 require (
-	cloud.google.com/go/pubsub v1.36.0
+	cloud.google.com/go/pubsub v1.36.1
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/sns v1.26.7
@@ -17,7 +17,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.27.0
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.27.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.27.0
-	google.golang.org/api v0.159.0
+	google.golang.org/api v0.161.0
 	google.golang.org/grpc v1.61.0
 )
 
@@ -85,7 +85,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
-	go.einride.tech/aip v0.65.0 // indirect
+	go.einride.tech/aip v0.66.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.47.0 // indirect
@@ -105,7 +105,7 @@ require (
 	golang.org/x/tools v0.16.1 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240116215550-a9fa1716bcac // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240122161410-6c6643bf1457 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
