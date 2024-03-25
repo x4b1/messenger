@@ -58,24 +58,6 @@ func run() error {
 		return err
 	}
 
-	pubsub.subscriber.Register(
-		messenger.NewSubscription("test-queue", func(ctx context.Context, msg messenger.Message) error {
-			bAtt, _ := json.Marshal(msg.Metadata())
-
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - id: %s\n", msg.ID())
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - attributes: %s\n", string(bAtt))
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - body: %s\n", msg.Payload())
-
-			i, _ := strconv.Atoi(msg.Metadata()["num"])
-			if i%2 == 0 {
-				return errors.New("some errr")
-			}
-			return nil
-		}))
-
 	http.Handle("/", inspect.NewInspector(pgStore))
 
 	msn := messenger.NewMessenger(pgStore, pubsub.publisher)
