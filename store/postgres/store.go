@@ -135,18 +135,13 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 }
 
 // Published marks as published the given messages.
-func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error {
-	ids := make([]string, len(msgs))
-	for i, msg := range msgs {
-		ids[i] = msg.ID()
-	}
-
+func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
 	if err := s.db.Exec(ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`,
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`,
 			s.schema,
 			s.table,
 		),
-		ids); err != nil {
+		msg.ID()); err != nil {
 		return fmt.Errorf("updating published messages: %w", err)
 	}
 

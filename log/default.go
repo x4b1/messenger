@@ -1,6 +1,9 @@
 package log
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // NewDefault returns an instance of default logger.
 func NewDefault() *Default {
@@ -11,7 +14,7 @@ func NewDefault() *Default {
 type Default struct{}
 
 // Error prints the given error to stdout.
-func (d *Default) Error(err error) {
+func (d *Default) Error(_ context.Context, err error) {
 	//nolint:forbidigo // the implementation needs to print to stdout
 	fmt.Println(err.Error())
 }

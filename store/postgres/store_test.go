@@ -101,9 +101,8 @@ func TestStorePublishMessages(t *testing.T) {
 		for i, msg := range publishMsgs[:batch] {
 			require.Equal(msg.Metadata(), msgs[i].Metadata())
 			require.Equal(msg.Payload(), msgs[i].Payload())
+			require.NoError(pg.Published(ctx, msg))
 		}
-
-		require.NoError(pg.Published(ctx, msgs...))
 
 		msgs, err = pg.Messages(ctx, batch)
 		require.NoError(err)
@@ -140,9 +139,8 @@ func TestStorePublishMessages(t *testing.T) {
 		for i, msg := range publishMsgs[:batch] {
 			require.Equal(msg.Metadata(), msgs[i].Metadata())
 			require.Equal(msg.Metadata(), msgs[i].Metadata())
+			require.NoError(pg.Published(context.Background(), msg))
 		}
-
-		require.NoError(pg.Published(context.Background(), msgs...))
 
 		msgs, err = pg.Messages(context.Background(), batch)
 		require.NoError(err)

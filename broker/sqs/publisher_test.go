@@ -43,7 +43,7 @@ func TestFailsGettingQueueURL(t *testing.T) {
 		},
 	}
 
-	_, err := publisher.New(context.Background(), &sqsMock, queue)
+	_, err := publisher.NewPublisher(context.Background(), &sqsMock, queue)
 	require.ErrorIs(t, err, errAws)
 }
 
@@ -65,7 +65,7 @@ func TestPublish(t *testing.T) {
 			},
 		}
 
-		pub, err := publisher.New(ctx, &sqsMock, queue)
+		pub, err := publisher.NewPublisher(ctx, &sqsMock, queue)
 		require.NoError(t, err)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
@@ -74,7 +74,7 @@ func TestPublish(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		expectedInput *sqs.SendMessageInput
-		opts          []publisher.Option
+		opts          []publisher.PublisherOption
 	}{
 		{
 			name: "no ordering key",
@@ -91,7 +91,10 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "default ordering key",
-			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
+			opts: []publisher.PublisherOption{
+				publisher.PublisherWithFifoQueue(true),
+				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
+			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
 				MessageBody:            aws.String(string(msg.Payload())),
@@ -105,10 +108,10 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{
-				publisher.WithFifoQueue(true),
-				publisher.WithDefaultOrderingKey(defaultOrdKey),
-				publisher.WithMetaOrderingKey(metaKey),
+			opts: []publisher.PublisherOption{
+				publisher.PublisherWithFifoQueue(true),
+				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
+				publisher.PublisherWithMetaOrderingKey(metaKey),
 			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
@@ -138,7 +141,7 @@ func TestPublish(t *testing.T) {
 				},
 			}
 
-			pub, err := publisher.New(ctx, &sqsMock, queue, tc.opts...)
+			pub, err := publisher.NewPublisher(ctx, &sqsMock, queue, tc.opts...)
 			r.NoError(err)
 
 			r.NoError(pub.Publish(ctx, msg))
