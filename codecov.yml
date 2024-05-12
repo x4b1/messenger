@@ -1,0 +1,3 @@
+ignored:
+  - "internal/testhelpers"
+  - "example"
