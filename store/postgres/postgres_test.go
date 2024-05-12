@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"github.com/x4b1/messenger/internal/testhelpers"
+	"github.com/x4b1/messenger/store/postgres"
 	store "github.com/x4b1/messenger/store/postgres/pgx"
 )
 
@@ -53,7 +54,7 @@ func NewTestStore(t *testing.T) (*store.Store, pgx.Tx) {
 	tx, err := connPool.Begin(context.TODO())
 	require.NoError(t, err)
 
-	s, err := store.WithInstance(context.Background(), testInstance{tx})
+	s, err := store.WithInstance(context.Background(), testInstance{tx}, postgres.WithJSONPayload())
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
