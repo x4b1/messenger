@@ -18,7 +18,7 @@ type publisherSuite struct {
 
 	sourceMock    *StoreMock
 	publishMock   *PublisherMock
-	errLoggerMock *ErrorLoggerMock
+	errLoggerMock *ErrorHandlerMock
 
 	batchSize int
 
@@ -28,7 +28,7 @@ type publisherSuite struct {
 func (s *publisherSuite) SetupTest() {
 	s.sourceMock = &StoreMock{}
 	s.publishMock = &PublisherMock{}
-	s.errLoggerMock = &ErrorLoggerMock{}
+	s.errLoggerMock = &ErrorHandlerMock{}
 
 	s.batchSize = 10
 	s.messages = []messenger.Message{
@@ -40,7 +40,7 @@ func (s *publisherSuite) SetupTest() {
 	s.publisher = messenger.NewMessenger(
 		s.sourceMock,
 		s.publishMock,
-		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithErrorHandler(s.errLoggerMock),
 		messenger.WithPublishBatchSize(s.batchSize),
 	)
 }
@@ -74,7 +74,7 @@ func (s *publisherSuite) TestPublishMessages() {
 
 	s.Len(s.sourceMock.PublishedCalls(), 2)
 	for i, c := range []messenger.Message{s.messages[0], s.messages[2]} {
-		s.Equal(c, s.sourceMock.PublishedCalls()[i].Msg[0])
+		s.Equal(c, s.sourceMock.PublishedCalls()[i].Msg)
 	}
 }
 
@@ -93,12 +93,12 @@ func (s *publisherSuite) TestFailsSavingPublishedMessages() {
 	}
 
 	savingMessagesErr := errors.New("saving messages")
-	s.sourceMock.PublishedFunc = func(context.Context, ...messenger.Message) error {
+	s.sourceMock.PublishedFunc = func(context.Context, messenger.Message) error {
 		return savingMessagesErr
 	}
 
 	err := s.publisher.Publish(context.Background())
-	//nolint: errorlint // stdlib does not provide a way to Unwrap multiple errors
+
 	errs := err.(interface{ Unwrap() []error }).Unwrap()
 	s.Len(errs, 3)
 
@@ -146,7 +146,7 @@ func (s *publisherSuite) TestStartsPublishReturnsError() {
 	}
 	runTimes := 0
 	publishErr := errors.New("publishing error")
-	s.sourceMock.PublishedFunc = func(context.Context, ...messenger.Message) error {
+	s.sourceMock.PublishedFunc = func(context.Context, messenger.Message) error {
 		runTimes++
 		if runTimes >= 3 {
 			cancel()
@@ -176,7 +176,7 @@ func (s *publisherSuite) TestStartWithCleanSetupStartsProcess() {
 	s.publisher = messenger.NewMessenger(
 		s.sourceMock,
 		s.publishMock,
-		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithErrorHandler(s.errLoggerMock),
 		messenger.WithCleanUp(expectedExpiration),
 	)
 
@@ -199,7 +199,7 @@ func (s *publisherSuite) TestFailsCleaning() {
 	s.publisher = messenger.NewMessenger(
 		s.sourceMock,
 		s.publishMock,
-		messenger.WithErrorLogger(s.errLoggerMock),
+		messenger.WithErrorHandler(s.errLoggerMock),
 		messenger.WithCleanUp(expectedExpiration),
 	)
 

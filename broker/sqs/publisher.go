@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
@@ -14,45 +15,45 @@ import (
 
 var _ broker.Broker = &Publisher{}
 
-//go:generate moq -pkg sqs_test -stub -out publisher_mock_test.go . Client
+//nolint:typecheck // aws constant to not generate every time.
+var awsStringDataType = aws.String("String")
 
-// Client defines the AWS SQS methods used by the Publisher. This is used for testing purposes.
-type Client interface {
-	GetQueueUrl(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error)
-	SendMessage(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
-}
+// PublisherOption is a function to set options to Publisher.
+type PublisherOption func(*Publisher)
 
-// Option is a function to set options to Publisher.
-type Option func(*Publisher)
-
-// WithMetaOrderingKey setups the metadata key to get the ordering key.
-func WithMetaOrderingKey(key string) Option {
+// PublisherWithMetaOrderingKey setups the metadata key to get the ordering key.
+func PublisherWithMetaOrderingKey(key string) PublisherOption {
 	return func(p *Publisher) {
 		p.metaOrdKey = key
 	}
 }
 
-// WithDefaultOrderingKey setups the default ordering key.
-func WithDefaultOrderingKey(key string) Option {
+// PublisherWithDefaultOrderingKey setups the default ordering key.
+func PublisherWithDefaultOrderingKey(key string) PublisherOption {
 	return func(p *Publisher) {
 		p.defaultOrdKey = key
 	}
 }
 
-// WithFifoQueue setups the flag to use fifo queue.
-func WithFifoQueue(fifo bool) Option {
+// PublisherWithFifoQueue setups the flag to use fifo queue.
+func PublisherWithFifoQueue(fifo bool) PublisherOption {
 	return func(p *Publisher) {
 		p.fifo = fifo
 	}
 }
 
-// Open returns a new Publisher instance.
-func Open(ctx context.Context, awsOpts sqs.Options, queue string, opts ...Option) (*Publisher, error) {
-	return New(ctx, sqs.New(awsOpts), queue, opts...)
+// NewPublisherFromDefault returns a new Publisher instance.
+func NewPublisherFromDefault(ctx context.Context, queue string, opts ...PublisherOption) (*Publisher, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading aws config from default: %w", err)
+	}
+
+	return NewPublisher(ctx, sqs.NewFromConfig(cfg), queue, opts...)
 }
 
-// New returns a new Publisher instance.
-func New(ctx context.Context, svc Client, queue string, opts ...Option) (*Publisher, error) {
+// NewPublisher returns a new Publisher instance.
+func NewPublisher(ctx context.Context, svc Client, queue string, opts ...PublisherOption) (*Publisher, error) {
 	q, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: aws.String(queue)})
 	if err != nil {
 		return nil, fmt.Errorf("getting queue url: %w", err)
@@ -87,10 +88,16 @@ type Publisher struct {
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := msg.Metadata()
-	att := make(map[string]types.MessageAttributeValue, len(md))
+	att := make(map[string]types.MessageAttributeValue)
+
+	att[broker.MessageIDKey] = types.MessageAttributeValue{
+		DataType:    awsStringDataType,
+		StringValue: aws.String(msg.ID()),
+	}
+
 	for k, v := range md {
 		att[k] = types.MessageAttributeValue{
-			DataType:    aws.String("String"),
+			DataType:    awsStringDataType,
 			StringValue: aws.String(v),
 		}
 	}

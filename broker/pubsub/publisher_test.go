@@ -56,7 +56,7 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.Equal(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
 	require.Empty(t, msgs[0].OrderingKey)
 }
 
@@ -78,7 +78,7 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.Equal(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
 	require.Equal(t, ordKey, msgs[0].OrderingKey)
 }
 
@@ -102,6 +102,6 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.Equal(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
 	require.Equal(t, orderingValue, msgs[0].OrderingKey)
 }

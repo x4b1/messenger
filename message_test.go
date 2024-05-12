@@ -27,7 +27,7 @@ func TestGenericMessage(t *testing.T) {
 		require.NotEmpty(t, msg.ID())
 		require.Equal(t, msg.MsgID, msg.ID())
 
-		require.Equal(t, map[string]string{mdKey: mdValue}, msg.Metadata())
+		require.Equal(t, messenger.Metadata{mdKey: mdValue}, msg.Metadata())
 		require.Equal(t, msg.MsgMetadata, msg.Metadata())
 
 		require.Equal(t, msg.MsgPayload, []byte(somePayload))

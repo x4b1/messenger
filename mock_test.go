@@ -26,7 +26,7 @@ var _ messenger.Store = &StoreMock{}
 //			MessagesFunc: func(ctx context.Context, batch int) ([]messenger.Message, error) {
 //				panic("mock out the Messages method")
 //			},
-//			PublishedFunc: func(ctx context.Context, msg ...messenger.Message) error {
+//			PublishedFunc: func(ctx context.Context, msg messenger.Message) error {
 //				panic("mock out the Published method")
 //			},
 //		}
@@ -43,7 +43,7 @@ type StoreMock struct {
 	MessagesFunc func(ctx context.Context, batch int) ([]messenger.Message, error)
 
 	// PublishedFunc mocks the Published method.
-	PublishedFunc func(ctx context.Context, msg ...messenger.Message) error
+	PublishedFunc func(ctx context.Context, msg messenger.Message) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -66,7 +66,7 @@ type StoreMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Msg is the msg argument value.
-			Msg []messenger.Message
+			Msg messenger.Message
 		}
 	}
 	lockDeletePublishedByExpiration sync.RWMutex
@@ -154,10 +154,10 @@ func (mock *StoreMock) MessagesCalls() []struct {
 }
 
 // Published calls PublishedFunc.
-func (mock *StoreMock) Published(ctx context.Context, msg ...messenger.Message) error {
+func (mock *StoreMock) Published(ctx context.Context, msg messenger.Message) error {
 	callInfo := struct {
 		Ctx context.Context
-		Msg []messenger.Message
+		Msg messenger.Message
 	}{
 		Ctx: ctx,
 		Msg: msg,
@@ -171,7 +171,7 @@ func (mock *StoreMock) Published(ctx context.Context, msg ...messenger.Message) 
 		)
 		return errOut
 	}
-	return mock.PublishedFunc(ctx, msg...)
+	return mock.PublishedFunc(ctx, msg)
 }
 
 // PublishedCalls gets all the calls that were made to Published.
@@ -180,11 +180,11 @@ func (mock *StoreMock) Published(ctx context.Context, msg ...messenger.Message) 
 //	len(mockedStore.PublishedCalls())
 func (mock *StoreMock) PublishedCalls() []struct {
 	Ctx context.Context
-	Msg []messenger.Message
+	Msg messenger.Message
 } {
 	var calls []struct {
 		Ctx context.Context
-		Msg []messenger.Message
+		Msg messenger.Message
 	}
 	mock.lockPublished.RLock()
 	calls = mock.calls.Published
@@ -267,33 +267,35 @@ func (mock *PublisherMock) PublishCalls() []struct {
 	return calls
 }
 
-// Ensure, that ErrorLoggerMock does implement messenger.ErrorLogger.
+// Ensure, that ErrorHandlerMock does implement messenger.ErrorHandler.
 // If this is not the case, regenerate this file with moq.
-var _ messenger.ErrorLogger = &ErrorLoggerMock{}
+var _ messenger.ErrorHandler = &ErrorHandlerMock{}
 
-// ErrorLoggerMock is a mock implementation of messenger.ErrorLogger.
+// ErrorHandlerMock is a mock implementation of messenger.ErrorHandler.
 //
-//	func TestSomethingThatUsesErrorLogger(t *testing.T) {
+//	func TestSomethingThatUsesErrorHandler(t *testing.T) {
 //
-//		// make and configure a mocked messenger.ErrorLogger
-//		mockedErrorLogger := &ErrorLoggerMock{
-//			ErrorFunc: func(err error)  {
+//		// make and configure a mocked messenger.ErrorHandler
+//		mockedErrorHandler := &ErrorHandlerMock{
+//			ErrorFunc: func(ctx context.Context, err error)  {
 //				panic("mock out the Error method")
 //			},
 //		}
 //
-//		// use mockedErrorLogger in code that requires messenger.ErrorLogger
+//		// use mockedErrorHandler in code that requires messenger.ErrorHandler
 //		// and then make assertions.
 //
 //	}
-type ErrorLoggerMock struct {
+type ErrorHandlerMock struct {
 	// ErrorFunc mocks the Error method.
-	ErrorFunc func(err error)
+	ErrorFunc func(ctx context.Context, err error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Error holds details about calls to the Error method.
 		Error []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// Err is the err argument value.
 			Err error
 		}
@@ -302,10 +304,12 @@ type ErrorLoggerMock struct {
 }
 
 // Error calls ErrorFunc.
-func (mock *ErrorLoggerMock) Error(err error) {
+func (mock *ErrorHandlerMock) Error(ctx context.Context, err error) {
 	callInfo := struct {
+		Ctx context.Context
 		Err error
 	}{
+		Ctx: ctx,
 		Err: err,
 	}
 	mock.lockError.Lock()
@@ -314,17 +318,19 @@ func (mock *ErrorLoggerMock) Error(err error) {
 	if mock.ErrorFunc == nil {
 		return
 	}
-	mock.ErrorFunc(err)
+	mock.ErrorFunc(ctx, err)
 }
 
 // ErrorCalls gets all the calls that were made to Error.
 // Check the length with:
 //
-//	len(mockedErrorLogger.ErrorCalls())
-func (mock *ErrorLoggerMock) ErrorCalls() []struct {
+//	len(mockedErrorHandler.ErrorCalls())
+func (mock *ErrorHandlerMock) ErrorCalls() []struct {
+	Ctx context.Context
 	Err error
 } {
 	var calls []struct {
+		Ctx context.Context
 		Err error
 	}
 	mock.lockError.RLock()

@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker/sns"
+	"github.com/x4b1/messenger/broker/sqs"
 	"github.com/x4b1/messenger/inspect"
 	"github.com/x4b1/messenger/internal/testhelpers"
 	"github.com/x4b1/messenger/store/postgres"
@@ -32,7 +35,6 @@ func main() {
 	}
 }
 
-//nolint:gocognit //main function
 func run() error {
 	ctx := context.Background()
 
@@ -55,6 +57,24 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	pubsub.subscriber.Register(
+		messenger.NewSubscription("test-queue", func(ctx context.Context, msg messenger.Message) error {
+			bAtt, _ := json.Marshal(msg.Metadata())
+
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - id: %s\n", msg.ID())
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - attributes: %s\n", string(bAtt))
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - body: %s\n", msg.Payload())
+
+			i, _ := strconv.Atoi(msg.Metadata()["num"])
+			if i%2 == 0 {
+				return errors.New("some errr")
+			}
+			return nil
+		}))
 
 	http.Handle("/", inspect.NewInspector(pgStore))
 
@@ -81,36 +101,8 @@ func run() error {
 	}()
 
 	go func() {
-		sqsClient := aws_sqs.NewFromConfig(awsContainer.Config)
-		for {
-			msgs, err := sqsClient.ReceiveMessage(ctx, &aws_sqs.ReceiveMessageInput{
-				QueueUrl:              pubsub.queue.QueueUrl,
-				MessageAttributeNames: []string{"trace_id"},
-				WaitTimeSeconds:       20, //nolint:gomnd // simplicity
-			})
-			if err != nil {
-				log.Fatal(fmt.Errorf("receiving sqs messages: %w", err))
-			}
-			for _, msg := range msgs.Messages {
-				att := make(map[string]string, len(msg.MessageAttributes))
-				for key, v := range msg.MessageAttributes {
-					att[key] = aws.ToString(v.StringValue)
-				}
-
-				bAtt, _ := json.Marshal(att)
-
-				//nolint: forbidigo // need to print command line to show result
-				fmt.Printf("\t - attributes: %s\n", string(bAtt))
-				//nolint: forbidigo // need to print command line to show result
-				fmt.Printf("\t - body: %s\n", aws.ToString(msg.Body))
-
-				if _, err := sqsClient.DeleteMessage(ctx, &aws_sqs.DeleteMessageInput{
-					QueueUrl:      pubsub.queue.QueueUrl,
-					ReceiptHandle: msg.ReceiptHandle,
-				}); err != nil {
-					log.Fatal(fmt.Errorf("deleting message: %w", err))
-				}
-			}
+		if err := pubsub.subscriber.Listen(ctx); err != nil {
+			log.Fatal(fmt.Errorf("listening events: %w", err))
 		}
 	}()
 
@@ -149,6 +141,7 @@ func generateMessages() []messenger.Message {
 	for i := range msgs {
 		msg, _ := messenger.NewMessage([]byte(`{"hello": "word"}`))
 		msg.SetMetadata("trace_id", traceID)
+		msg.SetMetadata("num", strconv.Itoa(i+1))
 		msgs[i] = msg
 	}
 
@@ -181,9 +174,10 @@ func setupStore(ctx context.Context) (*pgx.Store, func(), error) {
 }
 
 type pubsub struct {
-	publisher *sns.Publisher
-	topic     *aws_sns.CreateTopicOutput
-	queue     *aws_sqs.CreateQueueOutput
+	publisher  *sns.Publisher
+	subscriber *sqs.Subscriber
+	topic      *aws_sns.CreateTopicOutput
+	queue      *aws_sqs.CreateQueueOutput
 }
 
 func initPubSub(ctx context.Context, awsCfg aws.Config) (*pubsub, error) {
@@ -226,5 +220,7 @@ func initPubSub(ctx context.Context, awsCfg aws.Config) (*pubsub, error) {
 		return nil, err
 	}
 
-	return &pubsub{pub, topic, queue}, nil
+	sub := sqs.NewSubscriber(aws_sqs.NewFromConfig(awsCfg))
+
+	return &pubsub{pub, sub, topic, queue}, nil
 }

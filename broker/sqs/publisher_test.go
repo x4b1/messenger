@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 	publisher "github.com/x4b1/messenger/broker/sqs"
 )
 
@@ -43,7 +44,7 @@ func TestFailsGettingQueueURL(t *testing.T) {
 		},
 	}
 
-	_, err := publisher.New(context.Background(), &sqsMock, queue)
+	_, err := publisher.NewPublisher(context.Background(), &sqsMock, queue)
 	require.ErrorIs(t, err, errAws)
 }
 
@@ -65,7 +66,7 @@ func TestPublish(t *testing.T) {
 			},
 		}
 
-		pub, err := publisher.New(ctx, &sqsMock, queue)
+		pub, err := publisher.NewPublisher(ctx, &sqsMock, queue)
 		require.NoError(t, err)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
@@ -74,7 +75,7 @@ func TestPublish(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		expectedInput *sqs.SendMessageInput
-		opts          []publisher.Option
+		opts          []publisher.PublisherOption
 	}{
 		{
 			name: "no ordering key",
@@ -83,40 +84,46 @@ func TestPublish(t *testing.T) {
 				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				QueueUrl: aws.String(queueURL),
 			},
 		},
 		{
 			name: "default ordering key",
-			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
+			opts: []publisher.PublisherOption{
+				publisher.PublisherWithFifoQueue(true),
+				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
+			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
 				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				QueueUrl: aws.String(queueURL),
 			},
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{
-				publisher.WithFifoQueue(true),
-				publisher.WithDefaultOrderingKey(defaultOrdKey),
-				publisher.WithMetaOrderingKey(metaKey),
+			opts: []publisher.PublisherOption{
+				publisher.PublisherWithFifoQueue(true),
+				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
+				publisher.PublisherWithMetaOrderingKey(metaKey),
 			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
 				MessageBody:            aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				QueueUrl: aws.String(queueURL),
 			},
@@ -138,7 +145,7 @@ func TestPublish(t *testing.T) {
 				},
 			}
 
-			pub, err := publisher.New(ctx, &sqsMock, queue, tc.opts...)
+			pub, err := publisher.NewPublisher(ctx, &sqsMock, queue, tc.opts...)
 			r.NoError(err)
 
 			r.NoError(pub.Publish(ctx, msg))

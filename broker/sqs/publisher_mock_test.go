@@ -20,8 +20,14 @@ var _ brokersqs.Client = &ClientMock{}
 //
 //		// make and configure a mocked brokersqs.Client
 //		mockedClient := &ClientMock{
+//			DeleteMessageFunc: func(contextMoqParam context.Context, deleteMessageInput *servicesqs.DeleteMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.DeleteMessageOutput, error) {
+//				panic("mock out the DeleteMessage method")
+//			},
 //			GetQueueUrlFunc: func(contextMoqParam context.Context, getQueueUrlInput *servicesqs.GetQueueUrlInput, fns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error) {
 //				panic("mock out the GetQueueUrl method")
+//			},
+//			ReceiveMessageFunc: func(contextMoqParam context.Context, receiveMessageInput *servicesqs.ReceiveMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.ReceiveMessageOutput, error) {
+//				panic("mock out the ReceiveMessage method")
 //			},
 //			SendMessageFunc: func(contextMoqParam context.Context, sendMessageInput *servicesqs.SendMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error) {
 //				panic("mock out the SendMessage method")
@@ -33,20 +39,44 @@ var _ brokersqs.Client = &ClientMock{}
 //
 //	}
 type ClientMock struct {
+	// DeleteMessageFunc mocks the DeleteMessage method.
+	DeleteMessageFunc func(contextMoqParam context.Context, deleteMessageInput *servicesqs.DeleteMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.DeleteMessageOutput, error)
+
 	// GetQueueUrlFunc mocks the GetQueueUrl method.
 	GetQueueUrlFunc func(contextMoqParam context.Context, getQueueUrlInput *servicesqs.GetQueueUrlInput, fns ...func(*servicesqs.Options)) (*servicesqs.GetQueueUrlOutput, error)
+
+	// ReceiveMessageFunc mocks the ReceiveMessage method.
+	ReceiveMessageFunc func(contextMoqParam context.Context, receiveMessageInput *servicesqs.ReceiveMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.ReceiveMessageOutput, error)
 
 	// SendMessageFunc mocks the SendMessage method.
 	SendMessageFunc func(contextMoqParam context.Context, sendMessageInput *servicesqs.SendMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.SendMessageOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// DeleteMessage holds details about calls to the DeleteMessage method.
+		DeleteMessage []struct {
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// DeleteMessageInput is the deleteMessageInput argument value.
+			DeleteMessageInput *servicesqs.DeleteMessageInput
+			// Fns is the fns argument value.
+			Fns []func(*servicesqs.Options)
+		}
 		// GetQueueUrl holds details about calls to the GetQueueUrl method.
 		GetQueueUrl []struct {
 			// ContextMoqParam is the contextMoqParam argument value.
 			ContextMoqParam context.Context
 			// GetQueueUrlInput is the getQueueUrlInput argument value.
 			GetQueueUrlInput *servicesqs.GetQueueUrlInput
+			// Fns is the fns argument value.
+			Fns []func(*servicesqs.Options)
+		}
+		// ReceiveMessage holds details about calls to the ReceiveMessage method.
+		ReceiveMessage []struct {
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// ReceiveMessageInput is the receiveMessageInput argument value.
+			ReceiveMessageInput *servicesqs.ReceiveMessageInput
 			// Fns is the fns argument value.
 			Fns []func(*servicesqs.Options)
 		}
@@ -60,8 +90,54 @@ type ClientMock struct {
 			Fns []func(*servicesqs.Options)
 		}
 	}
-	lockGetQueueUrl sync.RWMutex
-	lockSendMessage sync.RWMutex
+	lockDeleteMessage  sync.RWMutex
+	lockGetQueueUrl    sync.RWMutex
+	lockReceiveMessage sync.RWMutex
+	lockSendMessage    sync.RWMutex
+}
+
+// DeleteMessage calls DeleteMessageFunc.
+func (mock *ClientMock) DeleteMessage(contextMoqParam context.Context, deleteMessageInput *servicesqs.DeleteMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.DeleteMessageOutput, error) {
+	callInfo := struct {
+		ContextMoqParam    context.Context
+		DeleteMessageInput *servicesqs.DeleteMessageInput
+		Fns                []func(*servicesqs.Options)
+	}{
+		ContextMoqParam:    contextMoqParam,
+		DeleteMessageInput: deleteMessageInput,
+		Fns:                fns,
+	}
+	mock.lockDeleteMessage.Lock()
+	mock.calls.DeleteMessage = append(mock.calls.DeleteMessage, callInfo)
+	mock.lockDeleteMessage.Unlock()
+	if mock.DeleteMessageFunc == nil {
+		var (
+			deleteMessageOutputOut *servicesqs.DeleteMessageOutput
+			errOut                 error
+		)
+		return deleteMessageOutputOut, errOut
+	}
+	return mock.DeleteMessageFunc(contextMoqParam, deleteMessageInput, fns...)
+}
+
+// DeleteMessageCalls gets all the calls that were made to DeleteMessage.
+// Check the length with:
+//
+//	len(mockedClient.DeleteMessageCalls())
+func (mock *ClientMock) DeleteMessageCalls() []struct {
+	ContextMoqParam    context.Context
+	DeleteMessageInput *servicesqs.DeleteMessageInput
+	Fns                []func(*servicesqs.Options)
+} {
+	var calls []struct {
+		ContextMoqParam    context.Context
+		DeleteMessageInput *servicesqs.DeleteMessageInput
+		Fns                []func(*servicesqs.Options)
+	}
+	mock.lockDeleteMessage.RLock()
+	calls = mock.calls.DeleteMessage
+	mock.lockDeleteMessage.RUnlock()
+	return calls
 }
 
 // GetQueueUrl calls GetQueueUrlFunc.
@@ -105,6 +181,50 @@ func (mock *ClientMock) GetQueueUrlCalls() []struct {
 	mock.lockGetQueueUrl.RLock()
 	calls = mock.calls.GetQueueUrl
 	mock.lockGetQueueUrl.RUnlock()
+	return calls
+}
+
+// ReceiveMessage calls ReceiveMessageFunc.
+func (mock *ClientMock) ReceiveMessage(contextMoqParam context.Context, receiveMessageInput *servicesqs.ReceiveMessageInput, fns ...func(*servicesqs.Options)) (*servicesqs.ReceiveMessageOutput, error) {
+	callInfo := struct {
+		ContextMoqParam     context.Context
+		ReceiveMessageInput *servicesqs.ReceiveMessageInput
+		Fns                 []func(*servicesqs.Options)
+	}{
+		ContextMoqParam:     contextMoqParam,
+		ReceiveMessageInput: receiveMessageInput,
+		Fns:                 fns,
+	}
+	mock.lockReceiveMessage.Lock()
+	mock.calls.ReceiveMessage = append(mock.calls.ReceiveMessage, callInfo)
+	mock.lockReceiveMessage.Unlock()
+	if mock.ReceiveMessageFunc == nil {
+		var (
+			receiveMessageOutputOut *servicesqs.ReceiveMessageOutput
+			errOut                  error
+		)
+		return receiveMessageOutputOut, errOut
+	}
+	return mock.ReceiveMessageFunc(contextMoqParam, receiveMessageInput, fns...)
+}
+
+// ReceiveMessageCalls gets all the calls that were made to ReceiveMessage.
+// Check the length with:
+//
+//	len(mockedClient.ReceiveMessageCalls())
+func (mock *ClientMock) ReceiveMessageCalls() []struct {
+	ContextMoqParam     context.Context
+	ReceiveMessageInput *servicesqs.ReceiveMessageInput
+	Fns                 []func(*servicesqs.Options)
+} {
+	var calls []struct {
+		ContextMoqParam     context.Context
+		ReceiveMessageInput *servicesqs.ReceiveMessageInput
+		Fns                 []func(*servicesqs.Options)
+	}
+	mock.lockReceiveMessage.RLock()
+	calls = mock.calls.ReceiveMessage
+	mock.lockReceiveMessage.RUnlock()
 	return calls
 }
 
