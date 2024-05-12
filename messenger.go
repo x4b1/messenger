@@ -12,14 +12,14 @@ const (
 	defaultBatchSize = 100
 )
 
-//go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorLogger
+//go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorHandler
 
 // Store is the interface that wraps the message retrieval and update methods.
 type Store interface {
 	// List unpublished messages with a batch size
 	Messages(ctx context.Context, batch int) ([]Message, error)
-	// Mark as published the given messages, if one of the messages fails will not update any of the messages
-	Published(ctx context.Context, msg ...Message) error
+	// Mark as published the given messages.
+	Published(ctx context.Context, msg Message) error
 	// Deletes messages marked as published and older than expiration period from datastore.
 	DeletePublishedByExpiration(ctx context.Context, exp time.Duration) error
 }
@@ -30,9 +30,9 @@ type Publisher interface {
 	Publish(ctx context.Context, msg Message) error
 }
 
-// ErrorLogger is the interface that wraps the basic message publishing.
-type ErrorLogger interface {
-	Error(err error)
+// ErrorHandler is the interface that wraps the basic message publishing.
+type ErrorHandler interface {
+	Error(ctx context.Context, err error)
 }
 
 type fatalError struct {
@@ -64,10 +64,10 @@ func WithInterval(p time.Duration) Option {
 	}
 }
 
-// WithErrorLogger replaces the default error logger.
-func WithErrorLogger(l ErrorLogger) Option {
+// WithErrorHandler replaces the default error logger.
+func WithErrorHandler(l ErrorHandler) Option {
 	return func(w *Messenger) {
-		w.logger = l
+		w.errHandler = l
 	}
 }
 
@@ -87,9 +87,9 @@ func NewMessenger(store Store, publisher Publisher, opts ...Option) *Messenger {
 		interval:  time.Second,
 		batchSize: defaultBatchSize,
 
-		logger:    log.NewDefault(),
-		publisher: publisher,
-		store:     store,
+		errHandler: log.NewDefault(),
+		publisher:  publisher,
+		store:      store,
 	}
 	for _, opt := range opts {
 		opt(&p)
@@ -109,9 +109,9 @@ type Messenger struct {
 	// clean params
 	expiration time.Duration
 
-	logger    ErrorLogger
-	store     Store
-	publisher Publisher
+	errHandler ErrorHandler
+	store      Store
+	publisher  Publisher
 }
 
 // Publish runs once publishing process.
@@ -159,7 +159,7 @@ func (w *Messenger) Start(ctx context.Context) error {
 				if errors.As(err, &fatalErr) {
 					return err
 				}
-				w.logger.Error(err)
+				w.errHandler.Error(ctx, err)
 			}
 			if w.expiration > 0 {
 				if err := w.Clean(ctx); err != nil {

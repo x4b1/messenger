@@ -19,7 +19,7 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 	return &GenericMessage{
 		MsgID:       uuid.NewString(),
 		MsgPayload:  payload,
-		MsgMetadata: map[string]string{},
+		MsgMetadata: Metadata{},
 		MsgAt:       time.Now(),
 	}, nil
 }
@@ -27,7 +27,7 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 // A Message represents a message to be sent to message message queue.
 type Message interface {
 	ID() string
-	Metadata() map[string]string
+	Metadata() Metadata
 	Payload() []byte
 	Published() bool
 	At() time.Time
@@ -39,7 +39,7 @@ type GenericMessage struct {
 	// Unique identifier for the message.
 	MsgID string
 	// Contains the message header to be sent by the messenger to the message queue.
-	MsgMetadata map[string]string
+	MsgMetadata Metadata
 	// Payload is the message payload. Must not be empty
 	MsgPayload []byte
 	// Message is published to broker or not.
@@ -62,7 +62,7 @@ func (m *GenericMessage) SetMetadata(key, value string) *GenericMessage {
 }
 
 // Metadata returns the message metadata.
-func (m *GenericMessage) Metadata() map[string]string {
+func (m *GenericMessage) Metadata() Metadata {
 	return m.MsgMetadata
 }
 

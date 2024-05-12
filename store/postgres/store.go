@@ -73,7 +73,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 			i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4, i*totalArgs+5)
 		valueArgs = append(
 			valueArgs,
-			msg.ID(), metadata(msg.Metadata()), msg.Payload(), msg.Published(), msg.At().UTC(),
+			msg.ID(), msg.Metadata(), msg.Payload(), msg.Published(), msg.At().UTC(),
 		)
 	}
 
@@ -123,11 +123,9 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 	msgs := make([]messenger.Message, 0, batch)
 	for rows.Next() {
 		msg := &messenger.GenericMessage{}
-		md := metadata(msg.MsgMetadata)
-		if err := rows.Scan(&msg.MsgID, &md, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
+		if err := rows.Scan(&msg.MsgID, &msg.MsgMetadata, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
-		msg.MsgMetadata = md
 		msgs = append(msgs, msg)
 	}
 
@@ -135,18 +133,13 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 }
 
 // Published marks as published the given messages.
-func (s Storer) Published(ctx context.Context, msgs ...messenger.Message) error {
-	ids := make([]string, len(msgs))
-	for i, msg := range msgs {
-		ids[i] = msg.ID()
-	}
-
+func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
 	if err := s.db.Exec(ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = ANY($1)`,
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`,
 			s.schema,
 			s.table,
 		),
-		ids); err != nil {
+		msg.ID()); err != nil {
 		return fmt.Errorf("updating published messages: %w", err)
 	}
 
@@ -175,11 +168,9 @@ func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, er
 	}
 	for rows.Next() {
 		msg := &messenger.GenericMessage{}
-		md := metadata(msg.MsgMetadata)
-		if err := rows.Scan(&msg.MsgID, &md, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
+		if err := rows.Scan(&msg.MsgID, &msg.MsgMetadata, &msg.MsgPayload, &msg.MsgPublished, &msg.MsgAt); err != nil {
 			return nil, fmt.Errorf("scanning message: %w", err)
 		}
-		msg.MsgMetadata = md
 		result.Msgs = append(result.Msgs, msg)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 	publisher "github.com/x4b1/messenger/broker/sns"
 )
 
@@ -65,8 +66,9 @@ func TestPublish(t *testing.T) {
 				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         nil,
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				TopicArn: aws.String(topicARN),
 			},
@@ -79,8 +81,9 @@ func TestPublish(t *testing.T) {
 				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(defaultOrdKey),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				TopicArn: aws.String(topicARN),
 			},
@@ -97,8 +100,9 @@ func TestPublish(t *testing.T) {
 				Message:                aws.String(string(msg.Payload())),
 				MessageGroupId:         aws.String(orderingValue),
 				MessageAttributes: map[string]types.MessageAttributeValue{
-					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
-					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
+					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				TopicArn: aws.String(topicARN),
 			},

@@ -1,8 +1,8 @@
 module github.com/xabi93/messenger/tools
 
-go 1.21
+go 1.22
 
-toolchain go1.21.4
+toolchain go1.22.2
 
 require (
 	github.com/golangci/golangci-lint v1.57.2

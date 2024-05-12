@@ -14,6 +14,9 @@ import (
 
 var _ broker.Broker = &Publisher{}
 
+//nolint:typecheck // aws constant to not generate every time.
+var awsStringDataType = aws.String("String")
+
 //go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client
 
 // Client defines the AWS SNS methods used by the Publisher. This is used for testing purposes.
@@ -81,10 +84,16 @@ type Publisher struct {
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := msg.Metadata()
-	att := make(map[string]types.MessageAttributeValue, len(md))
+	att := make(map[string]types.MessageAttributeValue)
+
+	att[broker.MessageIDKey] = types.MessageAttributeValue{
+		DataType:    awsStringDataType,
+		StringValue: aws.String(msg.ID()),
+	}
+
 	for k, v := range md {
 		att[k] = types.MessageAttributeValue{
-			DataType:    aws.String("String"),
+			DataType:    awsStringDataType,
 			StringValue: aws.String(v),
 		}
 	}

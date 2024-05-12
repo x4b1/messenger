@@ -21,7 +21,7 @@ type LocalStackContainer struct {
 // CreateLocalStackContainer starts a local stack container with SNS and SQS services, and returns its instance.
 func CreateLocalStackContainer(ctx context.Context) (*LocalStackContainer, error) {
 	lsContainer, err := localstack.RunContainer(ctx,
-		testcontainers.WithImage("localstack/localstack:3.0.2"),
+		testcontainers.WithImage("localstack/localstack:3.4.0"),
 		testcontainers.CustomizeRequest(testcontainers.GenericContainerRequest{
 			ContainerRequest: testcontainers.ContainerRequest{
 				Env: map[string]string{"SERVICES": "sns,sqs"},

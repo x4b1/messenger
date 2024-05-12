@@ -92,7 +92,7 @@ linters-settings:
         # Default: true
         skipRecvDeref: false
 
-  gomnd:
+  mnd:
     # List of function patterns to exclude from analysis.
     # Values always ignored: `time.Date`,
     # `strconv.FormatInt`, `strconv.FormatUint`, `strconv.FormatFloat`,
@@ -200,7 +200,6 @@ linters:
     - durationcheck # checks for two durations multiplied together
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
-    - execinquery # checks query string in Query function which reads your Go src files and warning it finds
     - exhaustive # checks exhaustiveness of enum switch statements
     - exportloopref # checks for pointers to enclosing loop variables
     - forbidigo # forbids identifiers
@@ -215,7 +214,7 @@ linters:
     - gocyclo # computes and checks the cyclomatic complexity of functions
     - godot # checks if comments end in a period
     - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
-    - gomnd # detects magic numbers
+    - mnd # detects magic numbers
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - gomodguard # allow and block lists linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations
     - goprintffuncname # checks that printf-like functions are named with f at the end
@@ -276,6 +275,7 @@ linters:
     #- depguard # [replaced by gomodguard] checks if package imports are in a list of acceptable packages
     #- dogsled # checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     #- dupword # [useless without config] checks for duplicate words in the source code
+    #- execinquery # checks query string in Query function which reads your Go src files and warning it finds
     #- errchkjson # [don't see profit + I'm against of omitting errors like in the first example https://github.com/breml/errchkjson] checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted
     #- forcetypeassert # [replaced by errcheck] finds forced type assertions
     #- goerr113 # [too strict] checks the errors handling expressions
