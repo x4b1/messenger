@@ -48,13 +48,17 @@ func (ti testInstance) Ping(ctx context.Context) error {
 	return ti.Tx.Conn().Ping(ctx)
 }
 
-func NewTestStore(t *testing.T) (*store.Store, pgx.Tx) {
+func NewTestStore(t *testing.T, opts ...postgres.Option) (*store.Store, pgx.Tx) {
 	t.Helper()
 
 	tx, err := connPool.Begin(context.TODO())
 	require.NoError(t, err)
 
-	s, err := store.WithInstance(context.Background(), testInstance{tx}, postgres.WithJSONPayload())
+	s, err := store.WithInstance(
+		context.Background(),
+		testInstance{tx},
+		append([]postgres.Option{postgres.WithJSONPayload()}, opts...)...,
+	)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

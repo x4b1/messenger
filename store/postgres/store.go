@@ -9,6 +9,7 @@ import (
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/inspect"
+	"github.com/x4b1/messenger/store"
 )
 
 // errors.
@@ -59,6 +60,8 @@ type Storer struct {
 	schema      string
 	table       string
 	jsonPayload bool
+
+	transformer store.Transformer
 }
 
 // Store saves messages.
@@ -67,6 +70,11 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
 	for i, msg := range msgs {
+		if s.transformer != nil {
+			if err := s.transformer.Transform(ctx, msg); err != nil {
+				return fmt.Errorf("transforming message before store: %w", err)
+			}
+		}
 		//nolint: gomnd // need it to point to each argument to insert
 		valueStr[i] = fmt.Sprintf(
 			"($%d, $%d, $%d, $%d, $%d)",

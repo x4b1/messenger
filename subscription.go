@@ -1,6 +1,8 @@
 package messenger
 
-import "context"
+import (
+	"context"
+)
 
 // SubscriptionHandler defines a function to process a message, if something fails returns an error.
 type SubscriptionHandler func(ctx context.Context, msg Message) error

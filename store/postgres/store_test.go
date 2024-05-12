@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -14,15 +15,16 @@ import (
 
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/inspect"
+	"github.com/x4b1/messenger/store"
 	"github.com/x4b1/messenger/store/postgres"
-	store "github.com/x4b1/messenger/store/postgres/pgx"
+	pgxstore "github.com/x4b1/messenger/store/postgres/pgx"
 )
 
 func TestOpen(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	_, err := store.Open(context.Background(), dbURL)
+	_, err := pgxstore.Open(context.Background(), dbURL)
 	require.NoError(err)
 }
 
@@ -31,7 +33,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := store.WithInstance(context.Background(), connPool, postgres.WithTableName(table))
+	_, err := pgxstore.WithInstance(context.Background(), connPool, postgres.WithTableName(table))
 	require.NoError(t, err)
 	row := connPool.QueryRow(
 		context.Background(),
@@ -48,7 +50,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	t.Parallel()
 
-	_, err := store.WithInstance(context.Background(), connPool, postgres.WithSchema("custom"))
+	_, err := pgxstore.WithInstance(context.Background(), connPool, postgres.WithSchema("custom"))
 
 	require.Error(t, err)
 }
@@ -56,10 +58,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := store.WithInstance(context.Background(), connPool)
+	_, err := pgxstore.WithInstance(context.Background(), connPool)
 	require.NoError(err)
 
-	_, err = store.WithInstance(context.Background(), connPool)
+	_, err = pgxstore.WithInstance(context.Background(), connPool)
 	require.NoError(err)
 }
 
@@ -150,6 +152,46 @@ func TestStorePublishMessages(t *testing.T) {
 			require.Equal(msg.Metadata(), msgs[i].Metadata())
 			require.Equal(msg.Payload(), msgs[i].Payload())
 		}
+	})
+	t.Run("with transformation", func(t *testing.T) {
+		t.Parallel()
+
+		ctxKey := "some-data"
+		ctx := context.WithValue(context.TODO(), ctxKey, "data")
+
+		pg, _ := NewTestStore(t, postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, msg messenger.Message) error {
+			msg.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
+			return nil
+		})))
+
+		require := require.New(t)
+		msg, err := messenger.NewMessage([]byte("message"))
+		require.NoError(err)
+		msg.SetMetadata("some", "meta")
+
+		require.NoError(pg.Store(ctx, nil, msg))
+
+		msgs, err := pg.Messages(context.Background(), 1)
+		require.NoError(err)
+
+		for _, got := range msgs {
+			require.Equal(msg.Metadata(), got.Metadata())
+			require.Equal(msg.Payload(), got.Payload())
+		}
+	})
+	t.Run("transformation fails", func(t *testing.T) {
+		t.Parallel()
+		someErr := errors.New("some err")
+		pg, _ := NewTestStore(t, postgres.WithTransformer(store.TransformerFunc(func(context.Context, messenger.Message) error {
+			return someErr
+		})))
+
+		require := require.New(t)
+		msg, err := messenger.NewMessage([]byte("message"))
+		require.NoError(err)
+		msg.SetMetadata("some", "meta")
+
+		require.ErrorIs(pg.Store(context.TODO(), nil, msg), someErr)
 	})
 }
 
