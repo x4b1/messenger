@@ -2,19 +2,20 @@ package log
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 )
 
-// NewDefault returns an instance of default logger.
+// NewDefault returns an instance of error handler using default log/slog.
 func NewDefault() *Default {
-	return &Default{}
+	return &Default{slog.Default()}
 }
 
-// Default is the default implementation of the error logger.
-type Default struct{}
+// Default uses std implementation of slog.
+type Default struct {
+	l *slog.Logger
+}
 
-// Error prints the given error to stdout.
-func (d *Default) Error(_ context.Context, err error) {
-	//nolint:forbidigo // the implementation needs to print to stdout
-	fmt.Println(err.Error())
+// Error prints the given error using slog error method.
+func (d *Default) Error(ctx context.Context, err error) {
+	d.l.ErrorContext(ctx, err.Error())
 }
