@@ -9,6 +9,11 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+const (
+	postgresStartupWaitTime     = 5 * time.Second
+	postgresReadyLogOccurrences = 2
+)
+
 // PostgresContainer contains a docker instance of postgres and the url where is exposed.
 type PostgresContainer struct {
 	*postgres.PostgresContainer
@@ -24,7 +29,8 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		postgres.WithPassword("postgres"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)), //nolint:gomnd // container setup
+				WithOccurrence(postgresReadyLogOccurrences).
+				WithStartupTimeout(postgresStartupWaitTime)),
 	)
 	if err != nil {
 		return nil, err

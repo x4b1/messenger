@@ -8,6 +8,8 @@ import (
 )
 
 func TestMetadata_Get(t *testing.T) {
+	t.Parallel()
+
 	md := messenger.Metadata{
 		"key": "value",
 	}
@@ -32,6 +34,7 @@ func TestMetadata_Get(t *testing.T) {
 }
 
 func TestMetadata_Set(t *testing.T) {
+	t.Parallel()
 	for tname, tc := range map[string]struct {
 		md       messenger.Metadata
 		expected messenger.Metadata
@@ -54,7 +57,7 @@ func TestMetadata_Set(t *testing.T) {
 		t.Run(tname, func(t *testing.T) {
 			t.Parallel()
 			tc.md.Set("key", "new-value")
-			require.Equal(t, tc.md, tc.expected)
+			require.Equal(t, tc.expected, tc.md)
 		})
 	}
 }
@@ -71,7 +74,7 @@ func TestMetadata_Value(t *testing.T) {
 }
 
 func TestMetadata_Scan(t *testing.T) {
-	md := messenger.Metadata{
+	expectedMD := messenger.Metadata{
 		"key": "value",
 	}
 	for tname, tc := range map[string]struct {
@@ -82,12 +85,12 @@ func TestMetadata_Scan(t *testing.T) {
 		"type string success": {
 			data:       `{"key":"value"}`,
 			expectErr:  false,
-			expectedMD: md,
+			expectedMD: expectedMD,
 		},
 		"type bytes success": {
 			data:       []byte(`{"key":"value"}`),
 			expectErr:  false,
-			expectedMD: md,
+			expectedMD: expectedMD,
 		},
 		"other type returns error": {
 			data:      123454,

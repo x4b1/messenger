@@ -157,6 +157,7 @@ func TestStorePublishMessages(t *testing.T) {
 		t.Parallel()
 
 		ctxKey := "some-data"
+		//nolint:staticcheck // use context key for simple testing purposes.
 		ctx := context.WithValue(context.TODO(), ctxKey, "data")
 
 		pg, _ := NewTestStore(t, postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, msg messenger.Message) error {
