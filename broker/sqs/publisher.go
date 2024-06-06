@@ -15,8 +15,7 @@ import (
 
 var _ broker.Broker = &Publisher{}
 
-
-var awsStringDataType = aws.String("String")
+var awsStringDataType = aws.String("String") //nolint: gochecknoglobals // aws constant
 
 // PublisherOption is a function to set options to Publisher.
 type PublisherOption func(*Publisher)

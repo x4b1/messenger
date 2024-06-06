@@ -12,7 +12,7 @@ import (
 // [Transformer] that calls f.
 type TransformerFunc func(context.Context, messenger.Message) error
 
-// ServeHTTP calls f(w, r).
+// Transform calls f(ctx, msg).
 func (f TransformerFunc) Transform(ctx context.Context, msg messenger.Message) error {
 	return f(ctx, msg)
 }

@@ -54,13 +54,13 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		sqsMock := ClientMock{
-			//nolint:lll
+
 			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return &sqs.GetQueueUrlOutput{
 					QueueUrl: aws.String(queueURL),
 				}, nil
 			},
-			//nolint:lll
+
 			SendMessageFunc: func(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
 				return nil, errAws
 			},
@@ -137,7 +137,7 @@ func TestPublish(t *testing.T) {
 			ctx := context.Background()
 
 			sqsMock := ClientMock{
-				//nolint:lll
+
 				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return &sqs.GetQueueUrlOutput{
 						QueueUrl: aws.String(queueURL),

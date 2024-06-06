@@ -75,7 +75,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 				return fmt.Errorf("transforming message before store: %w", err)
 			}
 		}
-		//nolint: gomnd // need it to point to each argument to insert
+		//nolint: mnd // need it to point to each argument to insert
 		valueStr[i] = fmt.Sprintf(
 			"($%d, $%d, $%d, $%d, $%d)",
 			i*totalArgs+1, i*totalArgs+2, i*totalArgs+3, i*totalArgs+4, i*totalArgs+5)

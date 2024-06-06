@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 	"github.com/x4b1/messenger/log"
@@ -104,45 +105,44 @@ func (s *Subscriber) subscribe(ctx context.Context, sub messenger.Subscription) 
 					return fmt.Errorf("%s: %w", aws.ToString(queueURL.QueueUrl), err)
 				}
 
-				if len(msgs.Messages) == 0 {
-					continue
-				}
-
-				var parsed messenger.GenericMessage
-
-				msg := msgs.Messages[0]
-				if msg.Body != nil {
-					parsed.MsgPayload = []byte(aws.ToString(msg.Body))
-				}
-
-				parsed.MsgMetadata = make(map[string]string, len(msg.MessageAttributes))
-				for k, v := range msg.MessageAttributes {
-					if k == broker.MessageIDKey {
-						parsed.MsgID = aws.ToString(v.StringValue)
+				for _, msg := range msgs.Messages {
+					err := s.processMessage(ctx, sub, msg)
+					if err != nil {
+						s.errHandler.Error(ctx, err)
 						continue
 					}
-					parsed.MsgMetadata[k] = aws.ToString(v.StringValue)
-				}
-				if parsed.MsgID == "" {
-					parsed.MsgID = aws.ToString(msg.MessageId)
-				}
-
-				if err := sub.Handle(ctx, &parsed); err != nil {
-					s.errHandler.Error(ctx, err)
-					continue
-				}
-
-				if _, err := s.cli.DeleteMessage(ctx, &sqs.DeleteMessageInput{
-					ReceiptHandle: msg.ReceiptHandle,
-					QueueUrl:      queueURL.QueueUrl,
-				}); err != nil {
-					s.errHandler.Error(ctx, err)
-					continue
+					if _, err := s.cli.DeleteMessage(ctx, &sqs.DeleteMessageInput{
+						ReceiptHandle: msg.ReceiptHandle,
+						QueueUrl:      queueURL.QueueUrl,
+					}); err != nil {
+						s.errHandler.Error(ctx, err)
+						continue
+					}
 				}
 			}
 		}
 	})
 	return nil
+}
+
+func (s *Subscriber) processMessage(ctx context.Context, sub messenger.Subscription, msg types.Message) error {
+	parsed := messenger.GenericMessage{
+		MsgPayload: []byte(aws.ToString(msg.Body)),
+	}
+
+	parsed.MsgMetadata = make(map[string]string, len(msg.MessageAttributes))
+	for k, v := range msg.MessageAttributes {
+		if k == broker.MessageIDKey {
+			parsed.MsgID = aws.ToString(v.StringValue)
+			continue
+		}
+		parsed.MsgMetadata[k] = aws.ToString(v.StringValue)
+	}
+	if parsed.MsgID == "" {
+		parsed.MsgID = aws.ToString(msg.MessageId)
+	}
+
+	return sub.Handle(ctx, &parsed)
 }
 
 // Listen starts listening for events.
