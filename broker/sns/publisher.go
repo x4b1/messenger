@@ -14,7 +14,7 @@ import (
 
 var _ broker.Broker = &Publisher{}
 
-//nolint:typecheck // aws constant to not generate every time.
+
 var awsStringDataType = aws.String("String")
 
 //go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client
