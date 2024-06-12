@@ -174,7 +174,8 @@ func setupStore(ctx context.Context) (*pgx.Store, func(), error) {
 }
 
 type pubsub struct {
-	publisher  *sns.Publisher
+	publisher *sns.Publisher
+
 	subscriber *sqs.Subscriber
 	topic      *aws_sns.CreateTopicOutput
 	queue      *aws_sqs.CreateQueueOutput

@@ -24,7 +24,7 @@ func initPubsub(ctx context.Context, t *testing.T) (*pstest.Server, *pubsub.Topi
 	srv := pstest.NewServer()
 	t.Cleanup(func() { srv.Close() })
 
-	conn, err := grpc.Dial(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	t.Cleanup(func() { conn.Close() })
 

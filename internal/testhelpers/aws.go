@@ -42,22 +42,12 @@ func CreateLocalStackContainer(ctx context.Context) (*LocalStackContainer, error
 		return nil, err
 	}
 
-	customResolver := aws.EndpointResolverWithOptionsFunc(
-		func(service, region string, opts ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           "http://" + net.JoinHostPort(host, port.Port()),
-				SigningRegion: region,
-			}, nil
-		})
-
-	awsCfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion("eu-west-1"),
-		config.WithEndpointResolverWithOptions(customResolver),
-	)
+	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
 	if err != nil {
 		return nil, err
 	}
+
+	awsCfg.BaseEndpoint = aws.String("http://" + net.JoinHostPort(host, port.Port()))
 
 	return &LocalStackContainer{
 		awsCfg,
