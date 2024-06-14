@@ -143,11 +143,9 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 // Published marks as published the given messages.
 func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
 	if err := s.db.Exec(ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`,
-			s.schema,
-			s.table,
-		),
-		msg.ID()); err != nil {
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`, s.schema, s.table),
+		msg.ID(),
+	); err != nil {
 		return fmt.Errorf("updating published messages: %w", err)
 	}
 
@@ -265,6 +263,21 @@ func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duratio
 	)
 	if err != nil {
 		return fmt.Errorf("deleting published messages: %w", err)
+	}
+
+	return nil
+}
+
+// Republish given a list of message ids set published to FALSE.
+// If the given message id does not exists it skips.
+func (s *Storer) Republish(ctx context.Context, msgID ...string) error {
+	err := s.db.Exec(
+		ctx,
+		fmt.Sprintf(`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`, s.schema, s.table),
+		msgID,
+	)
+	if err != nil {
+		return fmt.Errorf("republishing published messages: %w", err)
 	}
 
 	return nil
