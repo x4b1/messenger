@@ -1,23 +1,16 @@
 package inspect
 
 import (
-	"bytes"
 	"context"
-	_ "embed"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
-	"text/template"
-	"time"
+	"strings"
 
 	"github.com/x4b1/messenger"
 )
 
 const defaultLimit = 25
-
-//go:embed index.tmpl
-var indexFile string
 
 // Pagination defines a page and limit to get paginated messages.
 type Pagination struct {
@@ -39,6 +32,7 @@ type Result struct {
 // Store knows how to retrieve messages.
 type Store interface {
 	Find(ctx context.Context, q *Query) (*Result, error)
+	Republish(ctx context.Context, msgID ...string) error
 }
 
 // NewInspector returns a new instance of the Inspector.
@@ -55,38 +49,14 @@ type Inspector struct {
 
 // ServeHTTP is a httpHandler that renders the index.tmpl with the messages stored.
 func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.New("index").Funcs(
-		template.FuncMap{
-			"prettyJson": func(b []byte) string {
-				var prettyJSON bytes.Buffer
-				err := json.Indent(&prettyJSON, b, "", "  ")
-				if err != nil {
-					log.Print(err)
-				}
-				return prettyJSON.String()
-			},
-			"nextPage": func(page int) int {
-				return page + 1
-			},
-			"prevPage": func(page int) int {
-				page--
-				if page < 0 {
-					return 0
-				}
-
-				return page
-			},
-			"formatDate": func(d time.Time) string {
-				return d.Format(time.RFC3339)
-			},
-		},
-	).Parse(indexFile)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/republish") {
+		i.handleRepublish(w, r)
 		return
 	}
+	i.handleIndex(w, r)
+}
 
+func (i *Inspector) handleIndex(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	if page == 0 {
 		page = 1
@@ -104,7 +74,7 @@ func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tmpl.Execute(w, struct {
+	if err := indexTemplate.Execute(w, struct {
 		*Result
 		Page int
 	}{
@@ -114,4 +84,26 @@ func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
 	}
+}
+
+type republishRequest struct {
+	MessageIDs []string `json:"message_ids,omitempty"`
+}
+
+func (i *Inspector) handleRepublish(w http.ResponseWriter, r *http.Request) {
+	var req republishRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+
+	if err := i.s.Republish(r.Context(), req.MessageIDs...); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

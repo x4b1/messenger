@@ -321,3 +321,53 @@ func TestFind(t *testing.T) {
 		require.Equal(expected[i].Published(), result.Msgs[i].Published())
 	}
 }
+
+func TestRepublish(t *testing.T) {
+	t.Parallel()
+
+	pg, _ := NewTestStore(t)
+
+	require := require.New(t)
+
+	published, err := messenger.NewMessage([]byte("{}"))
+	require.NoError(err)
+	published.SetMetadata("some", "meta")
+	published.MsgPublished = true
+	require.NoError(pg.Store(context.Background(), nil, published))
+
+	notPublished, err := messenger.NewMessage([]byte("{}"))
+	require.NoError(err)
+	published.SetMetadata("some", "meta")
+	require.NoError(pg.Store(context.Background(), nil, notPublished))
+
+	result, err := pg.Find(context.Background(), &inspect.Query{
+		Pagination: inspect.Pagination{
+			Page:  1,
+			Limit: 10,
+		},
+	})
+	require.NoError(err)
+
+	require.Len(result.Msgs, 2)
+	require.False(result.Msgs[0].Published())
+	require.True(result.Msgs[1].Published())
+
+	require.NoError(
+		pg.Republish(context.Background(),
+			result.Msgs[1].ID(),
+			"444f3f05-bfd9-4cf2-8ab1-8698028afe80", // random id
+		),
+	)
+
+	result, err = pg.Find(context.Background(), &inspect.Query{
+		Pagination: inspect.Pagination{
+			Page:  1,
+			Limit: 10,
+		},
+	})
+	require.NoError(err)
+
+	require.Len(result.Msgs, 2)
+	require.False(result.Msgs[0].Published())
+	require.False(result.Msgs[1].Published())
+}

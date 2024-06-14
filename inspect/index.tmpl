@@ -16,7 +16,7 @@
 
     .table {
       border-collapse: collapse;
-      margin: 25px 0;
+      margin: 20px 0;
       font-size: 0.9em;
       font-family: sans-serif;
       min-width: 400px;
@@ -32,6 +32,65 @@
     .table th,
     .table td {
       padding: 12px 15px;
+    }
+
+    .table td.status {
+      text-align: center;
+    }
+
+    .table td.actions {
+      text-align: center;
+    }
+
+    .republish {
+      position: relative;
+      padding: 0;
+      font-size: 24px;
+      text-align: center;
+      color: #009879;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      background: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      transition: transform 0.4s ease-in-out;
+    }
+
+    .reload {
+      font-family: Lucida Sans Unicode
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      background-color: #555;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      padding: 5px 10px;
+      border-radius: 6px;
+
+      /* Position the tooltip text */
+      position: absolute;
+      z-index: 1;
+      bottom: 80%;
+      left: 15%;
+      margin-left: -35px;
+
+      /* Fade in tooltip */
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
     }
 
     .table tbody tr {
@@ -99,7 +158,7 @@
 
     .pagination li a {
       position: relative;
-      padding: 20px 25px;
+      padding: 10px 15px;
       text-decoration: none;
       color: #fff;
       font-weight: 500;
@@ -118,6 +177,7 @@
           <th>Payload</th>
           <th>Published</th>
           <th>At</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -136,7 +196,7 @@
           <td>
             <pre class="json">{{ prettyJson .Payload }}</pre>
           </td>
-          <td>
+          <td class="status">
             {{ if .Published }}
             ✅
             {{ else }}
@@ -144,6 +204,14 @@
             {{ end }}
           </td>
           <td class="created_at">{{ formatDate .At }}</td>
+          <td class="actions">
+            {{ if .Published }}
+            <button class="republish tooltip" onclick="republish({{ .ID }})">
+              <span class="reload">&#x21bb;</span>
+              <div class="tooltiptext">Republish message</div>
+            </button>
+            {{ end }}
+          </td>
         </tr>
         {{end}}
       </tbody>
@@ -158,6 +226,19 @@
     </div>
   </div>
   <script>
+    async function republish(msg_id) {
+      const resp = await fetch("./republish",{
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({message_ids:[msg_id]})
+      });
+      if (resp.status === 200) {
+        location.reload();
+      }
+    }
+
     function syntaxHighlight(json) {
       if (!json) return ""; //no JSON from response
 
