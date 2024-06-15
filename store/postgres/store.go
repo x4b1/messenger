@@ -65,15 +65,14 @@ type Storer struct {
 }
 
 // Store saves messages.
-func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Message) error {
+func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...any) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
-	for i, msg := range msgs {
-		if s.transformer != nil {
-			if err := s.transformer.Transform(ctx, msg); err != nil {
-				return fmt.Errorf("transforming message before store: %w", err)
-			}
+	for i, inMsg := range msgs {
+		msg, err := s.transformer.Transform(ctx, inMsg)
+		if err != nil {
+			return fmt.Errorf("transforming message before store: %w", err)
 		}
 		//nolint: mnd // need it to point to each argument to insert
 		valueStr[i] = fmt.Sprintf(
