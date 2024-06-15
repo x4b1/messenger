@@ -57,18 +57,18 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 }
 
 // Storer is the implementation of messages store for postgres.
-type Storer struct {
+type Storer[T any] struct {
 	db Instance
 
 	schema      string
 	table       string
 	jsonPayload bool
 
-	transformer store.Transformer
+	transformer store.Transformer[T]
 }
 
 // Store saves messages.
-func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...any) error {
+func (s *Storer[T]) Store(ctx context.Context, tx Executor, msgs ...T) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)

@@ -12,21 +12,21 @@ import (
 // ordinary functions as Transformer. If f is a function
 // with the appropriate signature, TransformerFunc(f) is a
 // [Transformer] that calls f.
-type TransformerFunc func(context.Context, any) (messenger.Message, error)
+type TransformerFunc[T any] func(context.Context, T) (messenger.Message, error)
 
 // Transform calls f(ctx, msg).
-func (f TransformerFunc) Transform(ctx context.Context, msg any) (messenger.Message, error) {
+func (f TransformerFunc) Transform(ctx context.Context, msg T) (messenger.Message, error) {
 	return f(ctx, msg)
 }
 
 // Transformer allows modify a message before store it. This function can be used to add some
 // additional metadata.
-type Transformer interface {
-	Transform(context.Context, any) (messenger.Message, error)
+type Transformer[T any] interface {
+	Transform(context.Context, T) (messenger.Message, error)
 }
 
-func NewDefaultTransformer() TransformerFunc {
-	return func(ctx context.Context, in any) (messenger.Message, error){
+func NewDefaultTransformer[T any]() TransformerFunc {
+	return func(ctx context.Context, in T) (messenger.Message, error){
 		if v, ok := in.(messenger.Message); ok {
 			return v, nil
 		}
