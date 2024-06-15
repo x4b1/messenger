@@ -15,7 +15,7 @@ import (
 type TransformerFunc[T any] func(context.Context, T) (messenger.Message, error)
 
 // Transform calls f(ctx, msg).
-func (f TransformerFunc) Transform(ctx context.Context, msg T) (messenger.Message, error) {
+func (f TransformerFunc[T]) Transform(ctx context.Context, msg T) (messenger.Message, error) {
 	return f(ctx, msg)
 }
 
@@ -25,7 +25,7 @@ type Transformer[T any] interface {
 	Transform(context.Context, T) (messenger.Message, error)
 }
 
-func NewDefaultTransformer[T any]() TransformerFunc {
+func NewDefaultTransformer[T any]() TransformerFunc[T] {
 	return func(ctx context.Context, in T) (messenger.Message, error){
 		if v, ok := in.(messenger.Message); ok {
 			return v, nil
