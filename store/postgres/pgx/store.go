@@ -35,7 +35,7 @@ type Store struct {
 }
 
 // Store saves message in postgres database with the given transaction.
-func (s *Store) Store(ctx context.Context, tx pgx.Tx, msgs ...messenger.Message) error {
+func (s *Store) Store(ctx context.Context, tx pgx.Tx, msgs ...any) error {
 	var exec postgres.Executor
 	if tx != nil {
 		exec = &execWrapper{tx}
