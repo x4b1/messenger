@@ -18,7 +18,7 @@ func TestTransformFunc(t *testing.T) {
 		require.Equal(t, expectedCtx, ctx)
 		require.Equal(t, expectedMsg, m)
 
-		return m, nil
+		return m.(messenger.Message), nil
 	}).Transform(expectedCtx, expectedMsg)
 
 	require.NoError(t,err)

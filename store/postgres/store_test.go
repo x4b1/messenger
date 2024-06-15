@@ -160,10 +160,12 @@ func TestStorePublishMessages(t *testing.T) {
 		//nolint:staticcheck // use context key for simple testing purposes.
 		ctx := context.WithValue(context.TODO(), ctxKey, "data")
 
-		pg, _ := NewTestStore(t, postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, msg messenger.Message) error {
-			msg.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
-			return nil
-		})))
+		pg, _ := NewTestStore(t,
+			postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, in any) (messenger.Message, error) {
+				msg := in.(messenger.Message)
+				msg.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
+				return msg, nil
+			})))
 
 		require := require.New(t)
 		msg, err := messenger.NewMessage([]byte("message"))
@@ -183,9 +185,10 @@ func TestStorePublishMessages(t *testing.T) {
 	t.Run("transformation fails", func(t *testing.T) {
 		t.Parallel()
 		someErr := errors.New("some err")
-		pg, _ := NewTestStore(t, postgres.WithTransformer(store.TransformerFunc(func(context.Context, messenger.Message) error {
-			return someErr
-		})))
+		pg, _ := NewTestStore(t,
+			postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, in any) (messenger.Message, error) {
+				return nil, someErr
+			})))
 
 		require := require.New(t)
 		msg, err := messenger.NewMessage([]byte("message"))
