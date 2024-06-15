@@ -2,7 +2,8 @@ package store
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
+	"fmt"
 
 	"github.com/x4b1/messenger"
 )
