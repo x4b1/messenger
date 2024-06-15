@@ -26,7 +26,10 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 		return nil, err
 	}
 
-	s := Storer{db: db}
+	s := Storer{
+		db: db,
+		transformer: store.NewDefaultTransformer(),
+	}
 
 	for _, opt := range opts {
 		opt(&s)
