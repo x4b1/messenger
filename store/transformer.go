@@ -25,12 +25,15 @@ type Transformer[T any] interface {
 	Transform(context.Context, T) (messenger.Message, error)
 }
 
-func NewDefaultTransformer[T any]() TransformerFunc[T] {
-	return func(ctx context.Context, in T) (messenger.Message, error){
-		if v, ok := in.(messenger.Message); ok {
+// DefaultTransformer parses message payload and adapts to messenger message.
+// if the message implements messenger.Message it just returns,
+// if message is a raw type embeds payload into a messenger.GenericMessage.
+// if not it will try to marshal the message and creates a messenger.GenericMessage.
+func DefaultTransformer[T any]() TransformerFunc[T] {
+	return func(ctx context.Context, in T) (messenger.Message, error) {
+		switch v := any(in).(type) {
+		case messenger.Message:
 			return v, nil
-		}
-		switch v := in.(type) {
 		case string:
 			return messenger.NewMessage([]byte(v))
 		case []byte:

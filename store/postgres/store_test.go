@@ -24,7 +24,7 @@ func TestOpen(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	_, err := pgxstore.Open(context.Background(), dbURL)
+	_, err := pgxstore.Open[messenger.Message](context.Background(), dbURL)
 	require.NoError(err)
 }
 
@@ -33,7 +33,7 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := pgxstore.WithInstance(context.Background(), connPool, postgres.WithTableName(table))
+	_, err := pgxstore.WithInstance[messenger.Message](context.Background(), connPool, postgres.WithTableName(table))
 	require.NoError(t, err)
 	row := connPool.QueryRow(
 		context.Background(),
@@ -50,7 +50,7 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	t.Parallel()
 
-	_, err := pgxstore.WithInstance(context.Background(), connPool, postgres.WithSchema("custom"))
+	_, err := pgxstore.WithInstance[messenger.Message](context.Background(), connPool, postgres.WithSchema("custom"))
 
 	require.Error(t, err)
 }
@@ -58,10 +58,10 @@ func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 func TestInitializeTwiceNotReturnError(t *testing.T) {
 	require := require.New(t)
 
-	_, err := pgxstore.WithInstance(context.Background(), connPool)
+	_, err := pgxstore.WithInstance[messenger.Message](context.Background(), connPool)
 	require.NoError(err)
 
-	_, err = pgxstore.WithInstance(context.Background(), connPool)
+	_, err = pgxstore.WithInstance[messenger.Message](context.Background(), connPool)
 	require.NoError(err)
 }
 
@@ -161,10 +161,9 @@ func TestStorePublishMessages(t *testing.T) {
 		ctx := context.WithValue(context.TODO(), ctxKey, "data")
 
 		pg, _ := NewTestStore(t,
-			postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, in any) (messenger.Message, error) {
-				msg := in.(messenger.Message)
-				msg.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
-				return msg, nil
+			postgres.WithTransformer(store.TransformerFunc[messenger.Message](func(ctx context.Context, in messenger.Message) (messenger.Message, error) {
+				in.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
+				return in, nil
 			})))
 
 		require := require.New(t)
@@ -186,7 +185,7 @@ func TestStorePublishMessages(t *testing.T) {
 		t.Parallel()
 		someErr := errors.New("some err")
 		pg, _ := NewTestStore(t,
-			postgres.WithTransformer(store.TransformerFunc(func(ctx context.Context, in any) (messenger.Message, error) {
+			postgres.WithTransformer(store.TransformerFunc[messenger.Message](func(ctx context.Context, in messenger.Message) (messenger.Message, error) {
 				return nil, someErr
 			})))
 

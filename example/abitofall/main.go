@@ -1,3 +1,4 @@
+//nolint:mnd // this is a file for testing
 package main
 
 import (
@@ -112,7 +113,7 @@ func run() error {
 	return nil
 }
 
-func publishEvents(ctx context.Context, s *pgx.Store) error {
+func publishEvents(ctx context.Context, s *pgx.Store[any]) error {
 	if err := s.Store(ctx, nil, generateMessages()...); err != nil {
 		return err
 	}
@@ -134,21 +135,31 @@ func publishEvents(ctx context.Context, s *pgx.Store) error {
 
 const messageBatch = 3
 
-func generateMessages() []messenger.Message {
+func generateMessages() []any {
 	traceID := uuid.NewString()
-	msgs := make([]messenger.Message, messageBatch)
+	msgs := []any{}
 
-	for i := range msgs {
+	for i := range messageBatch {
 		msg, _ := messenger.NewMessage([]byte(`{"hello": "word"}`))
 		msg.SetMetadata("trace_id", traceID)
 		msg.SetMetadata("num", strconv.Itoa(i+1))
-		msgs[i] = msg
+		msgs = append(msgs, msg)
 	}
+
+	msgs = append(msgs, struct {
+		Message string `json:"message,omitempty"`
+		TraceID string `json:"trace_id,omitempty"`
+		Num     int    `json:"num,omitempty"`
+	}{
+		Message: "this is a struct to be published",
+		TraceID: traceID,
+		Num:     6,
+	})
 
 	return msgs
 }
 
-func setupStore(ctx context.Context) (*pgx.Store, func(), error) {
+func setupStore(ctx context.Context) (*pgx.Store[any], func(), error) {
 	pgContainer, err := testhelpers.CreatePostgresContainer(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -164,7 +175,11 @@ func setupStore(ctx context.Context) (*pgx.Store, func(), error) {
 		return nil, nil, err
 	}
 
-	s, err := pgx.WithInstance(ctx, connPool, postgres.WithTableName("event"), postgres.WithJSONPayload())
+	s, err := pgx.WithInstance[any](
+		ctx, connPool,
+		postgres.WithTableName("event"),
+		postgres.WithJSONPayload(),
+	)
 	if err != nil {
 		closeContainer()
 		return nil, nil, err
