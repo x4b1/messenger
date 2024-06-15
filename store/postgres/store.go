@@ -21,14 +21,14 @@ var (
 const DefaultMessagesTable = "messages"
 
 // New returns a postgres store initialised with the given connection instance and config.
-func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
+func New[T any](ctx context.Context, db Instance, opts ...Option) (*Storer[T], error) {
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
 
-	s := Storer{
+	s := Storer[T]{
 		db: db,
-		transformer: store.NewDefaultTransformer(),
+		transformer: store.NewDefaultTransformer[T](),
 	}
 
 	for _, opt := range opts {
@@ -107,7 +107,7 @@ func (s *Storer[T]) Store(ctx context.Context, tx Executor, msgs ...T) error {
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
-func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
+func (s Storer[T]) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
@@ -143,7 +143,7 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 }
 
 // Published marks as published the given messages.
-func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
+func (s Storer[T]) Published(ctx context.Context, msg messenger.Message) error {
 	if err := s.db.Exec(ctx,
 		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`, s.schema, s.table),
 		msg.ID(),
@@ -155,7 +155,7 @@ func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
 }
 
 // Find returns a list of paginated messages filtered by the given query.
-func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
+func (s Storer[T]) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
@@ -189,7 +189,7 @@ func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, er
 	return &result, nil
 }
 
-func (s Storer) count(ctx context.Context, _ *inspect.Query) (int, error) {
+func (s Storer[T]) count(ctx context.Context, _ *inspect.Query) (int, error) {
 	var count int
 	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.schema, s.table)).Scan(&count)
 	if err != nil {
@@ -200,7 +200,7 @@ func (s Storer) count(ctx context.Context, _ *inspect.Query) (int, error) {
 }
 
 // ensureTable creates if not exists the table to store messages.
-func (s *Storer) ensureTable(ctx context.Context) error {
+func (s *Storer[T]) ensureTable(ctx context.Context) error {
 	// Check if table already exists, we cannot use `CREATE TABLE IF NOT EXISTS`,
 	// maybe the user does not have permissions to CREATE and it will fail
 	row := s.db.QueryRow(
@@ -257,7 +257,7 @@ func currentSchema(ctx context.Context, db Instance) (string, error) {
 
 // DeletePublishedByExpiration performs a hard delete of the messages with the column published to true
 // and created at lower than the given duration.
-func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
+func (s *Storer[T]) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
 	err := s.db.Exec(
 		ctx,
 		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.schema, s.table),
@@ -272,7 +272,7 @@ func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duratio
 
 // Republish given a list of message ids set published to FALSE.
 // If the given message id does not exists it skips.
-func (s *Storer) Republish(ctx context.Context, msgID ...string) error {
+func (s *Storer[T]) Republish(ctx context.Context, msgID ...string) error {
 	err := s.db.Exec(
 		ctx,
 		fmt.Sprintf(`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`, s.schema, s.table),
