@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 
 	"github.com/x4b1/messenger"
 )
@@ -23,9 +24,6 @@ type Transformer interface {
 	Transform(context.Context, any) (messenger.Message, error)
 }
 
-
-var ErrUnknownMessagePayload = errors.New("unknown message type")
-
 func NewDefaultTransformer() TransformerFunc {
 	return func(ctx context.Context, in any) (messenger.Message, error){
 		if v, ok := in.(messenger.Message); ok {
@@ -33,11 +31,16 @@ func NewDefaultTransformer() TransformerFunc {
 		}
 		switch v := in.(type) {
 		case string:
-			return messenger.NewMessage(v)
+			return messenger.NewMessage([]byte(v))
 		case []byte:
 			return messenger.NewMessage(v)
 		}
 
-		return nil, ErrUnknownMessagePayload
+		payload, err := json.Marshal(in)
+		if err != nil {
+			return nil, fmt.Errorf("encoding payload: %w", err)
+		}
+
+		return messenger.NewMessage(payload)
 	}
 }
