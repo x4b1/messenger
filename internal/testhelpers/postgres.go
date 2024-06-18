@@ -2,6 +2,7 @@ package testhelpers
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -14,6 +15,12 @@ const (
 	postgresReadyLogOccurrences = 2
 )
 
+//nolint:gochecknoglobals // need it for singleton
+var (
+	postgresOnce sync.Once
+	pgContainer  PostgresContainer
+)
+
 // PostgresContainer contains a docker instance of postgres and the url where is exposed.
 type PostgresContainer struct {
 	*postgres.PostgresContainer
@@ -22,26 +29,26 @@ type PostgresContainer struct {
 
 // CreatePostgresContainer starts a postgres container and returns its instance.
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:16-alpine"),
-		postgres.WithDatabase("test-db"),
-		postgres.WithUsername("postgres"),
-		postgres.WithPassword("postgres"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(postgresReadyLogOccurrences).
-				WithStartupTimeout(postgresStartupWaitTime)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	var err error
+	postgresOnce.Do(func() {
+		pgContainer.PostgresContainer, err = postgres.RunContainer(ctx,
+			testcontainers.WithImage("postgres:16-alpine"),
+			postgres.WithDatabase("test-db"),
+			postgres.WithUsername("postgres"),
+			postgres.WithPassword("postgres"),
+			testcontainers.WithWaitStrategy(
+				wait.ForLog("database system is ready to accept connections").
+					WithOccurrence(postgresReadyLogOccurrences).
+					WithStartupTimeout(postgresStartupWaitTime)),
+		)
+		if err != nil {
+			return
+		}
+		pgContainer.ConnectionString, err = pgContainer.PostgresContainer.ConnectionString(ctx, "sslmode=disable")
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &PostgresContainer{
-		PostgresContainer: pgContainer,
-		ConnectionString:  connStr,
-	}, nil
+	return &pgContainer, nil
 }
