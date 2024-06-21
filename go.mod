@@ -5,11 +5,11 @@ go 1.22
 toolchain go1.22.4
 
 require (
-	cloud.google.com/go/pubsub v1.38.0
-	github.com/aws/aws-sdk-go-v2 v1.27.2
-	github.com/aws/aws-sdk-go-v2/config v1.27.18
-	github.com/aws/aws-sdk-go-v2/service/sns v1.29.11
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.6
+	cloud.google.com/go/pubsub v1.39.0
+	github.com/aws/aws-sdk-go-v2 v1.30.0
+	github.com/aws/aws-sdk-go-v2/config v1.27.21
+	github.com/aws/aws-sdk-go-v2/service/sns v1.30.1
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.33.1
 	github.com/docker/go-connections v0.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.6.0
@@ -18,12 +18,12 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.31.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.31.0
 	golang.org/x/sync v0.7.0
-	google.golang.org/api v0.184.0
+	google.golang.org/api v0.185.0
 	google.golang.org/grpc v1.64.0
 )
 
 require (
-	cloud.google.com/go v0.114.0 // indirect
+	cloud.google.com/go v0.115.0 // indirect
 	cloud.google.com/go/auth v0.5.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
@@ -32,16 +32,16 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.12.0 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.18 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.9 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.9 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.21 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.12 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.12 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.20.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.21.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.25.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.29.1 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.15 // indirect
@@ -100,9 +100,9 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
-	google.golang.org/genproto v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240528184218-531527333157 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/protobuf v1.34.1 // indirect
+	google.golang.org/genproto v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240610135401-a8a62080eff3 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
