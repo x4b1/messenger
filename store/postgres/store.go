@@ -21,29 +21,35 @@ var (
 const DefaultMessagesTable = "messages"
 
 // New returns a postgres store initialised with the given connection instance and config.
-func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
+func New[T any](ctx context.Context, db Instance, opts ...Option) (*Storer[T], error) {
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
 
-	s := Storer{db: db}
+	s := Storer[T]{
+		db:          db,
+		transformer: store.DefaultTransformer[T](),
+	}
 
 	for _, opt := range opts {
 		opt(&s)
 	}
+	for _, opt := range opts {
+		opt(&s.config)
+	}
 
 	var err error
-	if s.schema == "" {
-		if s.schema, err = currentSchema(ctx, db); err != nil {
+	if s.config.schema == "" {
+		if s.config.schema, err = currentSchema(ctx, db); err != nil {
 			return nil, err
 		}
-		if s.schema == "" {
+		if s.config.schema == "" {
 			return nil, ErrMissingSchemaName
 		}
 	}
 
-	if s.table == "" {
-		s.table = DefaultMessagesTable
+	if s.config.table == "" {
+		s.config.table = DefaultMessagesTable
 	}
 
 	if err := s.ensureTable(ctx); err != nil {
@@ -53,27 +59,30 @@ func New(ctx context.Context, db Instance, opts ...Option) (*Storer, error) {
 	return &s, nil
 }
 
-// Storer is the implementation of messages store for postgres.
-type Storer struct {
-	db Instance
-
+type config struct {
 	schema      string
 	table       string
 	jsonPayload bool
+}
 
-	transformer store.Transformer
+// Storer is the implementation of messages store for postgres.
+type Storer[T any] struct {
+	db Instance
+
+	config config
+
+	transformer store.Transformer[T]
 }
 
 // Store saves messages.
-func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Message) error {
+func (s *Storer[T]) Store(ctx context.Context, tx Executor, msgs ...T) error {
 	valueStr := make([]string, len(msgs))
 	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
-	for i, msg := range msgs {
-		if s.transformer != nil {
-			if err := s.transformer.Transform(ctx, msg); err != nil {
-				return fmt.Errorf("transforming message before store: %w", err)
-			}
+	for i, inMsg := range msgs {
+		msg, err := s.transformer.Transform(ctx, inMsg)
+		if err != nil {
+			return fmt.Errorf("transforming message before store: %w", err)
 		}
 		//nolint: mnd // need it to point to each argument to insert
 		valueStr[i] = fmt.Sprintf(
@@ -87,8 +96,8 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 
 	stmt := fmt.Sprintf(
 		`INSERT INTO %q.%q (id, metadata, payload, published, created_at) VALUES %s`,
-		s.schema,
-		s.table,
+		s.config.schema,
+		s.config.table,
 		strings.Join(valueStr, ","),
 	)
 
@@ -105,7 +114,7 @@ func (s *Storer) Store(ctx context.Context, tx Executor, msgs ...messenger.Messa
 }
 
 // Messages returns a list of unpublished messages ordered by created at, first the oldest.
-func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
+func (s Storer[T]) Messages(ctx context.Context, batch int) ([]messenger.Message, error) {
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
@@ -118,8 +127,8 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 			ORDER BY
 				created_at ASC
 			LIMIT $1`,
-			s.schema,
-			s.table,
+			s.config.schema,
+			s.config.table,
 		),
 		batch,
 	)
@@ -141,9 +150,9 @@ func (s Storer) Messages(ctx context.Context, batch int) ([]messenger.Message, e
 }
 
 // Published marks as published the given messages.
-func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
+func (s Storer[T]) Published(ctx context.Context, msg messenger.Message) error {
 	if err := s.db.Exec(ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`, s.schema, s.table),
+		fmt.Sprintf(`UPDATE %q.%q SET published = TRUE WHERE id = $1`, s.config.schema, s.config.table),
 		msg.ID(),
 	); err != nil {
 		return fmt.Errorf("updating published messages: %w", err)
@@ -153,13 +162,13 @@ func (s Storer) Published(ctx context.Context, msg messenger.Message) error {
 }
 
 // Find returns a list of paginated messages filtered by the given query.
-func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
+func (s Storer[T]) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, error) {
 	rows, err := s.db.Query(
 		ctx,
 		fmt.Sprintf(
 			`SELECT id, metadata, payload, published, created_at FROM %q.%q ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-			s.schema,
-			s.table,
+			s.config.schema,
+			s.config.table,
 		),
 		q.Limit,
 		q.Limit*(q.Page-1),
@@ -187,9 +196,9 @@ func (s Storer) Find(ctx context.Context, q *inspect.Query) (*inspect.Result, er
 	return &result, nil
 }
 
-func (s Storer) count(ctx context.Context, _ *inspect.Query) (int, error) {
+func (s Storer[T]) count(ctx context.Context, _ *inspect.Query) (int, error) {
 	var count int
-	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.schema, s.table)).Scan(&count)
+	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.config.schema, s.config.table)).Scan(&count)
 	if err != nil {
 		return count, fmt.Errorf("counting messages: %w", err)
 	}
@@ -198,14 +207,14 @@ func (s Storer) count(ctx context.Context, _ *inspect.Query) (int, error) {
 }
 
 // ensureTable creates if not exists the table to store messages.
-func (s *Storer) ensureTable(ctx context.Context) error {
+func (s *Storer[T]) ensureTable(ctx context.Context) error {
 	// Check if table already exists, we cannot use `CREATE TABLE IF NOT EXISTS`,
 	// maybe the user does not have permissions to CREATE and it will fail
 	row := s.db.QueryRow(
 		ctx,
 		`SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2 LIMIT 1`,
-		s.schema,
-		s.table,
+		s.config.schema,
+		s.config.table,
 	)
 
 	var count int
@@ -218,7 +227,7 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 	}
 
 	payloadType := "TEXT"
-	if s.jsonPayload {
+	if s.config.jsonPayload {
 		payloadType = "JSONB"
 	}
 
@@ -231,8 +240,8 @@ func (s *Storer) ensureTable(ctx context.Context) error {
 			published BOOLEAN DEFAULT FALSE,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
-			s.schema,
-			s.table,
+			s.config.schema,
+			s.config.table,
 			payloadType,
 		),
 	)
@@ -255,10 +264,10 @@ func currentSchema(ctx context.Context, db Instance) (string, error) {
 
 // DeletePublishedByExpiration performs a hard delete of the messages with the column published to true
 // and created at lower than the given duration.
-func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
+func (s *Storer[T]) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
 	err := s.db.Exec(
 		ctx,
-		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.schema, s.table),
+		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.config.schema, s.config.table),
 		time.Now().UTC().Add(-d),
 	)
 	if err != nil {
@@ -270,10 +279,10 @@ func (s *Storer) DeletePublishedByExpiration(ctx context.Context, d time.Duratio
 
 // Republish given a list of message ids set published to FALSE.
 // If the given message id does not exists it skips.
-func (s *Storer) Republish(ctx context.Context, msgID ...string) error {
+func (s *Storer[T]) Republish(ctx context.Context, msgID ...string) error {
 	err := s.db.Exec(
 		ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`, s.schema, s.table),
+		fmt.Sprintf(`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`, s.config.schema, s.config.table),
 		msgID,
 	)
 	if err != nil {

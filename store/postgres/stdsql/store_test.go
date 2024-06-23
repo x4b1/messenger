@@ -20,7 +20,7 @@ func TestStore_Open(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		s, err := store.Open(context.TODO(), pgConn.ConnectionString, postgres.WithTableName(tableName))
+		s, err := store.Open[messenger.Message](context.TODO(), pgConn.ConnectionString, postgres.WithTableName(tableName))
 		require.NoError(t, err)
 		require.NotNil(t, s)
 	})
@@ -33,7 +33,7 @@ func TestStore_WithInstance(t *testing.T) {
 	db, err := sql.Open("pgx", pgConn.ConnectionString)
 	require.NoError(t, err)
 
-	s, err := store.WithInstance(context.TODO(), db, postgres.WithTableName(tableName))
+	s, err := store.WithInstance[messenger.Message](context.TODO(), db, postgres.WithTableName(tableName))
 	require.NoError(t, err)
 	require.NotNil(t, s)
 }
@@ -47,7 +47,7 @@ func TestStore_Store(t *testing.T) {
 	db, err := sql.Open("pgx", pgConn.ConnectionString)
 	require.NoError(t, err)
 
-	s, err := store.WithInstance(ctx, db, postgres.WithTableName(tableName))
+	s, err := store.WithInstance[messenger.Message](ctx, db, postgres.WithTableName(tableName))
 	require.NoError(t, err)
 
 	tx, err := db.BeginTx(ctx, nil)

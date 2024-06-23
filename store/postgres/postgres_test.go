@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
+	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/internal/testhelpers"
 	"github.com/x4b1/messenger/store/postgres"
 	store "github.com/x4b1/messenger/store/postgres/pgx"
@@ -48,13 +49,13 @@ func (ti testInstance) Ping(ctx context.Context) error {
 	return ti.Tx.Conn().Ping(ctx)
 }
 
-func NewTestStore(t *testing.T, opts ...postgres.Option) (*store.Store, pgx.Tx) {
+func NewTestStore(t *testing.T, opts ...postgres.Option) (*store.Store[messenger.Message], pgx.Tx) {
 	t.Helper()
 
 	tx, err := connPool.Begin(context.TODO())
 	require.NoError(t, err)
 
-	s, err := store.WithInstance(
+	s, err := store.WithInstance[messenger.Message](
 		context.Background(),
 		testInstance{tx},
 		append([]postgres.Option{postgres.WithJSONPayload()}, opts...)...,

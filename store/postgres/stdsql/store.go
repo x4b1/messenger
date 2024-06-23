@@ -13,32 +13,32 @@ import (
 )
 
 // Ensure implements messenger.Store interface.
-var _ messenger.Store = (*Store)(nil)
+var _ messenger.Store = (*Store[any])(nil)
 
 // Open returns a pgx source connected to database connection string with config.
-func Open(ctx context.Context, connStr string, opts ...postgres.Option) (*Store, error) {
+func Open[T any](ctx context.Context, connStr string, opts ...postgres.Option) (*Store[T], error) {
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("postgres connect parsing conf: %w", err)
 	}
 
-	return WithInstance(ctx, db, opts...)
+	return WithInstance[T](ctx, db, opts...)
 }
 
 // WithInstance returns Store source initialised with the given connection instance and config.
-func WithInstance(ctx context.Context, db *sql.DB, opts ...postgres.Option) (*Store, error) {
-	s, err := postgres.New(ctx, &conn{db, executor{db}}, opts...)
+func WithInstance[T any](ctx context.Context, db *sql.DB, opts ...postgres.Option) (*Store[T], error) {
+	s, err := postgres.New[T](ctx, &conn{db, executor{db}}, opts...)
 
-	return &Store{s}, err
+	return &Store[T]{s}, err
 }
 
 // Store is the instance to store and retrieve the messages in PostgreSQL database.
-type Store struct {
-	*postgres.Storer
+type Store[T any] struct {
+	*postgres.Storer[T]
 }
 
 // Store saves message in postgres database with the given transaction.
-func (s *Store) Store(ctx context.Context, tx *sql.Tx, msgs ...messenger.Message) error {
+func (s *Store[T]) Store(ctx context.Context, tx *sql.Tx, msgs ...T) error {
 	var exec postgres.Executor
 	if tx != nil {
 		exec = &executor{tx}

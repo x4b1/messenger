@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"html/template"
-	"log"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func prettyJSON(b []byte) string {
 	var prettyJSON bytes.Buffer
 	err := json.Indent(&prettyJSON, b, "", "  ")
 	if err != nil {
-		log.Print(err)
+		return string(b)
 	}
 	return prettyJSON.String()
 }
