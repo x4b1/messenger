@@ -189,12 +189,17 @@ func TestStorePublishMessages(t *testing.T) {
 				return nil, someErr
 			})))
 
-		require := require.New(t)
 		msg, err := messenger.NewMessage([]byte("message"))
-		require.NoError(err)
+		require.NoError(t, err)
 		msg.SetMetadata("some", "meta")
 
-		require.ErrorIs(pg.Store(context.TODO(), nil, msg), someErr)
+		require.ErrorIs(t, pg.Store(context.TODO(), nil, msg), someErr)
+	})
+
+	t.Run("no message provided to nothing", func(t *testing.T) {
+		t.Parallel()
+		pg, _ := NewTestStore(t)
+		require.NoError(t, pg.Store(context.TODO(), nil))
 	})
 }
 
