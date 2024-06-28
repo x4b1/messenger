@@ -76,6 +76,10 @@ type Storer[T any] struct {
 
 // Store saves messages.
 func (s *Storer[T]) Store(ctx context.Context, tx Executor, msgs ...T) error {
+	if len(msgs) == 0 {
+		// if no messages to store provided do nothing.
+		return nil
+	}
 	valueStr := make([]string, len(msgs))
 	totalArgs := 5
 	valueArgs := make([]any, 0, len(msgs)*totalArgs)
