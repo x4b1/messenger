@@ -219,15 +219,15 @@
     <div class="pagination">
       {{ $prev_page := (prevPage .Page)}}
       {{if (ne $prev_page 0)}}
-      <li><a href=".?page={{$prev_page}}">prev</a></li>
+      <li><a href="?page={{$prev_page}}">prev</a></li>
       {{end}}
       <strong>{{.Page}}</strong>
-      <li><a href=".?page={{nextPage .Page}}">next</a></li>
+      <li><a href="?page={{nextPage .Page}}">next</a></li>
     </div>
   </div>
   <script>
     async function republish(msg_id) {
-      const resp = await fetch("./republish",{
+      const resp = await fetch(window.location.pathname+"/republish",{
         method: "POST",
         headers: {
           "Content-Type": "application/json",
