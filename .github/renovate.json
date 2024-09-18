@@ -15,7 +15,7 @@
             "automerge": true
         }
     ],
-    "reviewers": ["xabi93"],
+    "reviewers": ["x4b1"],
     "dependencyDashboard": false,
     "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
 }
