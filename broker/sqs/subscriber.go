@@ -36,6 +36,13 @@ func SubscriberWithMaxMessages(msgs int) SubscriberOption {
 	}
 }
 
+// SubscriberWithMessageIDKey replaces default metadata key for id.
+func SubscriberWithMessageIDKey(key string) SubscriberOption {
+	return func(s *Subscriber) {
+		s.msgIDKey = key
+	}
+}
+
 // NewSubscriberFromDefault returns a new Publisher instance.
 func NewSubscriberFromDefault(ctx context.Context, queue string, opts ...SubscriberOption) (*Subscriber, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -56,6 +63,7 @@ func NewSubscriber(cli Client, opts ...SubscriberOption) *Subscriber {
 
 		maxWaitSeconds: defaultMaxWaitSeconds,
 		maxMessages:    defaultReceiveMessages,
+		msgIDKey:       broker.MessageIDKey,
 	}
 
 	for _, opt := range opts {
@@ -74,6 +82,7 @@ type Subscriber struct {
 
 	maxWaitSeconds int
 	maxMessages    int
+	msgIDKey       string
 }
 
 // Register adds subscriptions to subscriber.
@@ -132,7 +141,7 @@ func (s *Subscriber) processMessage(ctx context.Context, sub messenger.Subscript
 
 	parsed.MsgMetadata = make(map[string]string, len(msg.MessageAttributes))
 	for k, v := range msg.MessageAttributes {
-		if k == broker.MessageIDKey {
+		if k == s.msgIDKey {
 			parsed.MsgID = aws.ToString(v.StringValue)
 			continue
 		}

@@ -41,6 +41,13 @@ func PublisherWithFifoQueue(fifo bool) PublisherOption {
 	}
 }
 
+// PublisherWithMessageIDKey modify default message id key.
+func PublisherWithMessageIDKey(key string) PublisherOption {
+	return func(p *Publisher) {
+		p.msgIDKey = key
+	}
+}
+
 // NewPublisherFromDefault returns a new Publisher instance.
 func NewPublisherFromDefault(ctx context.Context, queue string, opts ...PublisherOption) (*Publisher, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -59,8 +66,9 @@ func NewPublisher(ctx context.Context, svc Client, queue string, opts ...Publish
 	}
 
 	p := Publisher{
-		svc:   svc,
-		queue: aws.ToString(q.QueueUrl),
+		svc:      svc,
+		queue:    aws.ToString(q.QueueUrl),
+		msgIDKey: broker.MessageIDKey,
 	}
 
 	for _, opt := range opts {
@@ -82,6 +90,8 @@ type Publisher struct {
 	defaultOrdKey string
 	// flag to use fifo queue
 	fifo bool
+	// metadata key where will be send the message id.
+	msgIDKey string
 }
 
 // Publish publishes the given message to the pubsub topic.
@@ -89,16 +99,16 @@ func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := msg.Metadata()
 	att := make(map[string]types.MessageAttributeValue)
 
-	att[broker.MessageIDKey] = types.MessageAttributeValue{
-		DataType:    awsStringDataType,
-		StringValue: aws.String(msg.ID()),
-	}
-
 	for k, v := range md {
 		att[k] = types.MessageAttributeValue{
 			DataType:    awsStringDataType,
 			StringValue: aws.String(v),
 		}
+	}
+
+	att[p.msgIDKey] = types.MessageAttributeValue{
+		DataType:    awsStringDataType,
+		StringValue: aws.String(msg.ID()),
 	}
 
 	_, err := p.svc.SendMessage(
