@@ -42,7 +42,6 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		snsMock := ClientMock{
-
 			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
 				return nil, errAws
 			},
@@ -103,6 +102,21 @@ func TestPublish(t *testing.T) {
 					"aggregate_id":      {DataType: aws.String("String"), StringValue: aws.String(msg.Metadata()["aggregate_id"])},
 					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
+				},
+				TopicArn: aws.String(topicARN),
+			},
+		},
+		{
+			name: "custom message id key",
+			opts: []publisher.Option{
+				publisher.WithMessageIDKey("custom_key"),
+			},
+			expectedInput: &sns.PublishInput{
+				Message: aws.String(string(msg.Payload())),
+				MessageAttributes: map[string]types.MessageAttributeValue{
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
+					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"custom_key":   {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
 				TopicArn: aws.String(topicARN),
 			},

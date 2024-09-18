@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/x4b1/messenger"
+	"github.com/x4b1/messenger/broker"
 	pubsubpublish "github.com/x4b1/messenger/broker/pubsub"
 )
 
@@ -56,7 +57,10 @@ func TestPublishWithNoOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, map[string]string{
+		"aggregate_id":      "29a7556a-ae85-4c1d-8f04-d57ed3122586",
+		broker.MessageIDKey: m.MsgID,
+	}, msgs[0].Attributes)
 	require.Empty(t, msgs[0].OrderingKey)
 }
 
@@ -78,7 +82,10 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, map[string]string{
+		"aggregate_id":      "29a7556a-ae85-4c1d-8f04-d57ed3122586",
+		broker.MessageIDKey: m.MsgID,
+	}, msgs[0].Attributes)
 	require.Equal(t, ordKey, msgs[0].OrderingKey)
 }
 
@@ -102,6 +109,28 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
 	require.Equal(t, m.Payload(), msgs[0].Data)
-	require.EqualValues(t, m.Metadata(), msgs[0].Attributes)
+	require.EqualValues(t, map[string]string{
+		metaKey:             orderingValue,
+		broker.MessageIDKey: m.MsgID,
+	}, msgs[0].Attributes)
 	require.Equal(t, orderingValue, msgs[0].OrderingKey)
+}
+
+func TestPublishWithCustomMessageID(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	srv, topic := initPubsub(ctx, t)
+
+	m, err := messenger.NewMessage([]byte("some message"))
+	require.NoError(t, err)
+	customKey := "custom_key"
+	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithMessageIDKey(customKey)).Publish(ctx, m))
+
+	msgs := srv.Messages()
+	require.Len(t, msgs, 1)
+	require.Equal(t, m.Payload(), msgs[0].Data)
+	require.EqualValues(t, map[string]string{
+		customKey: m.MsgID,
+	}, msgs[0].Attributes)
 }

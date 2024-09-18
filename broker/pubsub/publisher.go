@@ -28,9 +28,19 @@ func WithDefaultOrderingKey(key string) Option {
 	}
 }
 
+// WithMessageIDKey modify default message id key.
+func WithMessageIDKey(key string) Option {
+	return func(p *Publisher) {
+		p.msgIDKey = key
+	}
+}
+
 // New returns a new Publisher instance.
 func New(topic *pubsub.Topic, opts ...Option) *Publisher {
-	p := Publisher{topic: topic}
+	p := Publisher{
+		topic:    topic,
+		msgIDKey: broker.MessageIDKey,
+	}
 
 	for _, opt := range opts {
 		opt(&p)
@@ -47,12 +57,21 @@ type Publisher struct {
 	metaOrdKey string
 	// default ordering key in case not provided in message metadata
 	defaultOrdKey string
+	// metadata key where will be send the message id.
+	msgIDKey string
 }
 
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
+	md := make(map[string]string)
+	for k, v := range msg.Metadata() {
+		md[k] = v
+	}
+
+	md[p.msgIDKey] = msg.ID()
+
 	_, err := p.topic.Publish(ctx, &pubsub.Message{
-		Attributes:  msg.Metadata(),
+		Attributes:  md,
 		Data:        msg.Payload(),
 		OrderingKey: p.orderingKey(msg),
 	}).Get(ctx)

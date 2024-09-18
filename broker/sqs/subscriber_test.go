@@ -209,4 +209,44 @@ func TestSubscriber(t *testing.T) {
 
 		require.Equal(t, awsMessageID, hID)
 	})
+
+	t.Run("Success with custom id key", func(t *testing.T) {
+		var hID string
+
+		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error {
+			hID = msg.ID()
+
+			return nil
+		})
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		s := sqs.NewSubscriber(
+			&ClientMock{
+				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+					return queueURLOut, nil
+				},
+				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+					cancel()
+
+					return &awssqs.ReceiveMessageOutput{
+						Messages: []types.Message{
+							{
+								MessageId: aws.String(awsMessageID),
+								Body:      aws.String("hello world"),
+								MessageAttributes: map[string]types.MessageAttributeValue{
+									"AN":         {StringValue: aws.String("ATTRIBUTE")},
+									"custom_key": {StringValue: aws.String("custom_id")},
+								},
+							},
+						},
+					}, nil
+				},
+			}, sqs.SubscriberWithMessageIDKey("custom_key"))
+		s.Register(testSub)
+
+		require.NoError(t, s.Listen(ctx))
+
+		require.Equal(t, "custom_id", hID)
+	})
 }

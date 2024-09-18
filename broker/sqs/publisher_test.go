@@ -54,7 +54,6 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		sqsMock := ClientMock{
-
 			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return &sqs.GetQueueUrlOutput{
 					QueueUrl: aws.String(queueURL),
@@ -128,6 +127,21 @@ func TestPublish(t *testing.T) {
 				QueueUrl: aws.String(queueURL),
 			},
 		},
+		{
+			name: "custom message id key",
+			opts: []publisher.PublisherOption{
+				publisher.PublisherWithMessageIDKey("custom_key"),
+			},
+			expectedInput: &sqs.SendMessageInput{
+				MessageBody: aws.String(string(msg.Payload())),
+				MessageAttributes: map[string]types.MessageAttributeValue{
+					"aggregate_id": {DataType: aws.String("String"), StringValue: aws.String(msg.MsgMetadata["aggregate_id"])},
+					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
+					"custom_key":   {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
+				},
+				QueueUrl: aws.String(queueURL),
+			},
+		},
 	} {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
@@ -137,7 +151,6 @@ func TestPublish(t *testing.T) {
 			ctx := context.Background()
 
 			sqsMock := ClientMock{
-
 				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return &sqs.GetQueueUrlOutput{
 						QueueUrl: aws.String(queueURL),
