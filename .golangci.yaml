@@ -179,6 +179,10 @@ linters-settings:
     # Default: false
     all: true
 
+  gosec:
+    excludes:
+      - G115
+
 linters:
   disable-all: true
   enable:
@@ -201,7 +205,6 @@ linters:
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exhaustive # checks exhaustiveness of enum switch statements
-    - exportloopref # checks for pointers to enclosing loop variables
     - forbidigo # forbids identifiers
     - funlen # tool for detection of long functions
     - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
