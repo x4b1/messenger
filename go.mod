@@ -7,7 +7,7 @@ toolchain go1.23.2
 require (
 	cloud.google.com/go/pubsub v1.44.0
 	github.com/aws/aws-sdk-go-v2 v1.32.2
-	github.com/aws/aws-sdk-go-v2/config v1.27.43
+	github.com/aws/aws-sdk-go-v2/config v1.28.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.33.2
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.36.2
 	github.com/docker/go-connections v0.5.0
@@ -18,12 +18,12 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.33.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.33.0
 	golang.org/x/sync v0.8.0
-	google.golang.org/api v0.200.0
+	google.golang.org/api v0.201.0
 	google.golang.org/grpc v1.67.1
 )
 
 require (
-	cloud.google.com/go v0.115.1 // indirect
+	cloud.google.com/go v0.116.0 // indirect
 	cloud.google.com/go/auth v0.9.8 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
