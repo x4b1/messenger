@@ -2,14 +2,14 @@ module github.com/x4b1/messenger
 
 go 1.23
 
-toolchain go1.23.2
+toolchain go1.23.3
 
 require (
 	cloud.google.com/go/pubsub v1.45.1
-	github.com/aws/aws-sdk-go-v2 v1.32.3
-	github.com/aws/aws-sdk-go-v2/config v1.28.1
-	github.com/aws/aws-sdk-go-v2/service/sns v1.33.3
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.36.3
+	github.com/aws/aws-sdk-go-v2 v1.32.4
+	github.com/aws/aws-sdk-go-v2/config v1.28.3
+	github.com/aws/aws-sdk-go-v2/service/sns v1.33.4
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.0
 	github.com/docker/go-connections v0.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.1
@@ -17,14 +17,14 @@ require (
 	github.com/testcontainers/testcontainers-go v0.34.0
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.34.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.34.0
-	golang.org/x/sync v0.8.0
-	google.golang.org/api v0.204.0
-	google.golang.org/grpc v1.67.1
+	golang.org/x/sync v0.9.0
+	google.golang.org/api v0.205.0
+	google.golang.org/grpc v1.68.0
 )
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
-	cloud.google.com/go/auth v0.10.0 // indirect
+	cloud.google.com/go/auth v0.10.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.5 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.2.1 // indirect
@@ -32,16 +32,16 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.42 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.18 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.22 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.22 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.44 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.23 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.24.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.32.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.32.4 // indirect
 	github.com/aws/smithy-go v1.22.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
