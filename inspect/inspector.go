@@ -97,6 +97,7 @@ func (i *Inspector) handleRepublish(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
+	// nolint:errcheck // we dont care
 	defer r.Body.Close()
 
 	if err := i.s.Republish(r.Context(), req.MessageIDs...); err != nil {

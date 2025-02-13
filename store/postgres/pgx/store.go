@@ -1,3 +1,4 @@
+// Package pgx expose the methods to connect to postgres with pgx driver.
 package pgx
 
 import (

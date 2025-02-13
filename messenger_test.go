@@ -205,7 +205,7 @@ func (s *publisherSuite) TestFailsCleaning() {
 
 	cleaningError := errors.New("unknown err")
 
-	s.sourceMock.DeletePublishedByExpirationFunc = func(ctx context.Context, exp time.Duration) error {
+	s.sourceMock.DeletePublishedByExpirationFunc = func(context.Context, time.Duration) error {
 		return cleaningError
 	}
 

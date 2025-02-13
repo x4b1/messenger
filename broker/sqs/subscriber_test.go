@@ -91,7 +91,7 @@ func TestSubscriber(t *testing.T) {
 	})
 
 	t.Run("handling error fails", func(t *testing.T) {
-		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error { return errUnexpected })
+		testSub := messenger.NewSubscription("test", func(context.Context, messenger.Message) error { return errUnexpected })
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -112,7 +112,7 @@ func TestSubscriber(t *testing.T) {
 	})
 
 	t.Run("deleting message fails", func(t *testing.T) {
-		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error { return nil })
+		testSub := messenger.NewSubscription("test", func(context.Context, messenger.Message) error { return nil })
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -126,7 +126,7 @@ func TestSubscriber(t *testing.T) {
 
 					return message, nil
 				},
-				DeleteMessageFunc: func(contextMoqParam context.Context, deleteMessageInput *awssqs.DeleteMessageInput, fns ...func(*awssqs.Options)) (*awssqs.DeleteMessageOutput, error) {
+				DeleteMessageFunc: func(context.Context, *awssqs.DeleteMessageInput, ...func(*awssqs.Options)) (*awssqs.DeleteMessageOutput, error) {
 					return nil, errUnexpected
 				},
 			})
@@ -142,7 +142,7 @@ func TestSubscriber(t *testing.T) {
 			hMetadata map[string]string
 		)
 
-		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error {
+		testSub := messenger.NewSubscription("test", func(_ context.Context, msg messenger.Message) error {
 			hID = msg.ID()
 			hMsg = msg.Payload()
 			hMetadata = msg.Metadata()
@@ -174,7 +174,7 @@ func TestSubscriber(t *testing.T) {
 	t.Run("Success without id gets from aws", func(t *testing.T) {
 		var hID string
 
-		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error {
+		testSub := messenger.NewSubscription("test", func(_ context.Context, msg messenger.Message) error {
 			hID = msg.ID()
 
 			return nil
@@ -213,7 +213,7 @@ func TestSubscriber(t *testing.T) {
 	t.Run("Success with custom id key", func(t *testing.T) {
 		var hID string
 
-		testSub := messenger.NewSubscription("test", func(ctx context.Context, msg messenger.Message) error {
+		testSub := messenger.NewSubscription("test", func(_ context.Context, msg messenger.Message) error {
 			hID = msg.ID()
 
 			return nil

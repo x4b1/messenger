@@ -1,3 +1,4 @@
+// Package stdsql expose the methods to connect to postgres with std driver.
 package stdsql
 
 import (

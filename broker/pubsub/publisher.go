@@ -1,3 +1,4 @@
+// Package pubsub Google pubsub broker implementation
 package pubsub
 
 import (

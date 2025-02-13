@@ -44,7 +44,7 @@ func SubscriberWithMessageIDKey(key string) SubscriberOption {
 }
 
 // NewSubscriberFromDefault returns a new Publisher instance.
-func NewSubscriberFromDefault(ctx context.Context, queue string, opts ...SubscriberOption) (*Subscriber, error) {
+func NewSubscriberFromDefault(ctx context.Context, opts ...SubscriberOption) (*Subscriber, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading aws config from default: %w", err)

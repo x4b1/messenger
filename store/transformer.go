@@ -30,7 +30,7 @@ type Transformer[T any] interface {
 // if message is a raw type embeds payload into a messenger.GenericMessage.
 // if not it will try to marshal the message and creates a messenger.GenericMessage.
 func DefaultTransformer[T any]() TransformerFunc[T] {
-	return func(ctx context.Context, in T) (messenger.Message, error) {
+	return func(_ context.Context, in T) (messenger.Message, error) {
 		switch v := any(in).(type) {
 		case messenger.Message:
 			return v, nil

@@ -60,7 +60,7 @@ func run() error {
 	}
 
 	pubsub.subscriber.Register(
-		messenger.NewSubscription("test-queue", func(ctx context.Context, msg messenger.Message) error {
+		messenger.NewSubscription("test-queue", func(_ context.Context, msg messenger.Message) error {
 			bAtt, _ := json.Marshal(msg.Metadata())
 
 			//nolint: forbidigo // need to print command line to show result
