@@ -1,3 +1,5 @@
+// Package messenger exposes standard message to use along with multiple brokers and stores
+// implemented by messenger.
 package messenger
 
 import (

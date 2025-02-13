@@ -1,3 +1,4 @@
+// Package broker provides implementations to publish and receieve messages for different sources.
 package broker
 
 import (

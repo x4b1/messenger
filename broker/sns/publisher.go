@@ -1,3 +1,4 @@
+// Package sns exposes AWS SNS broker implementation
 package sns
 
 import (

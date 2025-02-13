@@ -42,7 +42,7 @@ func TestPublish(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
 		snsMock := ClientMock{
-			PublishFunc: func(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
+			PublishFunc: func(context.Context, *sns.PublishInput, ...func(*sns.Options)) (*sns.PublishOutput, error) {
 				return nil, errAws
 			},
 		}

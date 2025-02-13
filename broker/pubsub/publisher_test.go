@@ -23,14 +23,17 @@ func initPubsub(ctx context.Context, t *testing.T) (*pstest.Server, *pubsub.Topi
 	t.Helper()
 
 	srv := pstest.NewServer()
+	//nolint:errcheck // test file
 	t.Cleanup(func() { srv.Close() })
 
 	conn, err := grpc.NewClient(srv.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
+	//nolint:errcheck // test file
 	t.Cleanup(func() { conn.Close() })
 
 	client, err := pubsub.NewClient(ctx, "project", option.WithGRPCConn(conn))
 	require.NoError(t, err)
+	//nolint:errcheck // test file
 	t.Cleanup(func() { client.Close() })
 
 	topic, err := client.CreateTopic(ctx, topic)
