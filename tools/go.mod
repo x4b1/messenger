@@ -2,10 +2,10 @@ module github.com/xabi93/messenger/tools
 
 go 1.24
 
-toolchain go1.24.1
+toolchain go1.24.2
 
 require (
-	github.com/golangci/golangci-lint/v2 v2.0.2
+	github.com/golangci/golangci-lint v1.64.8
 	github.com/matryer/moq v0.5.3
 )
 
