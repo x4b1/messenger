@@ -58,7 +58,7 @@ func run() error {
 		return err
 	}
 
-	pubsub.subscriber.Register(
+	pubsub.subscriber.Subscribe(
 		messenger.NewSubscription(
 			"test-queue",
 			func(_ context.Context, msg messenger.Message) error {

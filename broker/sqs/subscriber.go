@@ -57,7 +57,7 @@ func NewSubscriberFromDefault(ctx context.Context, opts ...SubscriberOption) (*S
 func NewSubscriber(cli Client, opts ...SubscriberOption) *Subscriber {
 	s := Subscriber{
 		cli:        cli,
-		subs:       make([]messenger.Subscription, 0),
+		subs:       make(map[string]messenger.Subscription),
 		errHandler: log.NewDefault(),
 		group:      new(errgroup.Group),
 
@@ -78,16 +78,26 @@ type Subscriber struct {
 	cli        Client
 	errHandler messenger.ErrorHandler
 	group      *errgroup.Group
-	subs       []messenger.Subscription
+	subs       map[string]messenger.Subscription
 
 	maxWaitSeconds int
 	maxMessages    int
 	msgIDKey       string
 }
 
-// Register adds subscriptions to subscriber.
-func (s *Subscriber) Register(subs ...messenger.Subscription) {
-	s.subs = append(s.subs, subs...)
+// Subscribe adds subscriptions to subscriber, if subscription name is aready registered
+// it returns an error.
+// Subscription name will be used to identify SQS queue name.
+func (s *Subscriber) Subscribe(subs ...messenger.Subscription) error {
+	for _, sub := range subs {
+		if _, ok := s.subs[sub.Name()]; ok {
+			return fmt.Errorf("%s: %w", sub.Name(), broker.DuplicatedSubscription)
+		}
+
+		s.subs[sub.Name()] = sub
+	}
+
+	return nil
 }
 
 // subscribe registers one subscription.

@@ -45,7 +45,7 @@ func TestSubscriber(t *testing.T) {
 				return nil, errUnexpected
 			},
 		})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.ErrorIs(t, s.Listen(context.Background()), errUnexpected)
 	})
@@ -61,7 +61,7 @@ func TestSubscriber(t *testing.T) {
 				return nil, errUnexpected
 			},
 		})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.ErrorIs(t, s.Listen(context.Background()), errUnexpected)
 	})
@@ -85,7 +85,7 @@ func TestSubscriber(t *testing.T) {
 				return &awssqs.ReceiveMessageOutput{}, nil
 			},
 		})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 	})
@@ -109,7 +109,7 @@ func TestSubscriber(t *testing.T) {
 					return message, nil
 				},
 			})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 	})
@@ -136,7 +136,7 @@ func TestSubscriber(t *testing.T) {
 					return nil, errUnexpected
 				},
 			})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 	})
@@ -172,7 +172,7 @@ func TestSubscriber(t *testing.T) {
 					return message, nil
 				},
 			})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 
@@ -215,7 +215,7 @@ func TestSubscriber(t *testing.T) {
 					}, nil
 				},
 			})
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 
@@ -258,7 +258,7 @@ func TestSubscriber(t *testing.T) {
 					}, nil
 				},
 			}, sqs.SubscriberWithMessageIDKey("custom_key"))
-		s.Register(testSub)
+		s.Subscribe(testSub)
 
 		require.NoError(t, s.Listen(ctx))
 
