@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/inspect"
 	"github.com/x4b1/messenger/store"
@@ -33,7 +32,11 @@ func TestCustomTable(t *testing.T) {
 
 	table := "my-messages"
 
-	_, err := pgxstore.WithInstance[messenger.Message](context.Background(), connPool, postgres.WithTableName(table))
+	_, err := pgxstore.WithInstance[messenger.Message](
+		context.Background(),
+		connPool,
+		postgres.WithTableName(table),
+	)
 	require.NoError(t, err)
 	row := connPool.QueryRow(
 		context.Background(),
@@ -50,7 +53,11 @@ func TestCustomTable(t *testing.T) {
 func TestCustomSchemaNotExistsReturnsError(t *testing.T) {
 	t.Parallel()
 
-	_, err := pgxstore.WithInstance[messenger.Message](context.Background(), connPool, postgres.WithSchema("custom"))
+	_, err := pgxstore.WithInstance[messenger.Message](
+		context.Background(),
+		connPool,
+		postgres.WithSchema("custom"),
+	)
 
 	require.Error(t, err)
 }
@@ -160,11 +167,17 @@ func TestStorePublishMessages(t *testing.T) {
 		//nolint:staticcheck,revive // use context key for simple testing purposes.
 		ctx := context.WithValue(context.TODO(), ctxKey, "data")
 
-		pg, _ := NewTestStore(t,
-			postgres.WithTransformer(store.TransformerFunc[messenger.Message](func(ctx context.Context, in messenger.Message) (messenger.Message, error) {
-				in.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
-				return in, nil
-			})))
+		pg, _ := NewTestStore(
+			t,
+			postgres.WithTransformer(
+				store.TransformerFunc[messenger.Message](
+					func(ctx context.Context, in messenger.Message) (messenger.Message, error) {
+						in.Metadata().Set(ctxKey, ctx.Value(ctxKey).(string))
+						return in, nil
+					},
+				),
+			),
+		)
 
 		require := require.New(t)
 		msg, err := messenger.NewMessage([]byte("message"))
@@ -184,10 +197,16 @@ func TestStorePublishMessages(t *testing.T) {
 	t.Run("transformation fails", func(t *testing.T) {
 		t.Parallel()
 		someErr := errors.New("some err")
-		pg, _ := NewTestStore(t,
-			postgres.WithTransformer(store.TransformerFunc[messenger.Message](func(context.Context, messenger.Message) (messenger.Message, error) {
-				return nil, someErr
-			})))
+		pg, _ := NewTestStore(
+			t,
+			postgres.WithTransformer(
+				store.TransformerFunc[messenger.Message](
+					func(context.Context, messenger.Message) (messenger.Message, error) {
+						return nil, someErr
+					},
+				),
+			),
+		)
 
 		msg, err := messenger.NewMessage([]byte("message"))
 		require.NoError(t, err)

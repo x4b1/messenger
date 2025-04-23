@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 	publisher "github.com/x4b1/messenger/broker/sqs"

@@ -7,19 +7,15 @@ WHITE  := $(shell tput -Txterm setaf 7)
 CYAN   := $(shell tput -Txterm setaf 6)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: all test tools
+.PHONY: all test
 set_opts: .PHONY
 
-default: tidy tools
+default: tidy
 
 ## Tools:
 generate: ## Generate
 	$(call print-target)
 	@go generate ./...
-
-tools: ## go development tools
-	$(call print-target)
-	@cd tools && go install $(shell cd tools && go list -f '{{ join .Imports " " }}' -tags=tools)
 
 download: ## Downloads the dependencies
 	$(call print-target)
@@ -27,7 +23,7 @@ download: ## Downloads the dependencies
 
 tidy: ## Install development tools
 	$(call print-target)
-	@go mod tidy -compat=1.17
+	@go mod tidy
 
 ## Lint:
 lint: download ## Lint go code

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-
 	"github.com/x4b1/messenger"
 )
 

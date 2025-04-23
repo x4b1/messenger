@@ -8,13 +8,12 @@ import (
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/api/option"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 	pubsubpublish "github.com/x4b1/messenger/broker/pubsub"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const topic = "test-topic"
@@ -80,7 +79,10 @@ func TestPublishWithDefaultOrderingKey(t *testing.T) {
 	}
 
 	ordKey := "default-ord-key"
-	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m))
+	require.NoError(
+		t,
+		pubsubpublish.New(topic, pubsubpublish.WithDefaultOrderingKey(ordKey)).Publish(ctx, m),
+	)
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
@@ -107,7 +109,10 @@ func TestPublishWithMessageMetadataOrderingKey(t *testing.T) {
 		MsgPayload:  []byte("some message"),
 	}
 
-	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m))
+	require.NoError(
+		t,
+		pubsubpublish.New(topic, pubsubpublish.WithMetaOrderingKey(metaKey)).Publish(ctx, m),
+	)
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)
@@ -128,7 +133,10 @@ func TestPublishWithCustomMessageID(t *testing.T) {
 	m, err := messenger.NewMessage([]byte("some message"))
 	require.NoError(t, err)
 	customKey := "custom_key"
-	require.NoError(t, pubsubpublish.New(topic, pubsubpublish.WithMessageIDKey(customKey)).Publish(ctx, m))
+	require.NoError(
+		t,
+		pubsubpublish.New(topic, pubsubpublish.WithMessageIDKey(customKey)).Publish(ctx, m),
+	)
 
 	msgs := srv.Messages()
 	require.Len(t, msgs, 1)

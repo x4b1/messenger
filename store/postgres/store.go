@@ -202,7 +202,8 @@ func (s Storer[T]) Find(ctx context.Context, q *inspect.Query) (*inspect.Result,
 
 func (s Storer[T]) count(ctx context.Context, _ *inspect.Query) (int, error) {
 	var count int
-	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.config.schema, s.config.table)).Scan(&count)
+	err := s.db.QueryRow(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q.%q", s.config.schema, s.config.table)).
+		Scan(&count)
 	if err != nil {
 		return count, fmt.Errorf("counting messages: %w", err)
 	}
@@ -271,7 +272,11 @@ func currentSchema(ctx context.Context, db Instance) (string, error) {
 func (s *Storer[T]) DeletePublishedByExpiration(ctx context.Context, d time.Duration) error {
 	err := s.db.Exec(
 		ctx,
-		fmt.Sprintf("DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;", s.config.schema, s.config.table),
+		fmt.Sprintf(
+			"DELETE FROM %q.%q WHERE published = TRUE AND created_at < $1;",
+			s.config.schema,
+			s.config.table,
+		),
 		time.Now().UTC().Add(-d),
 	)
 	if err != nil {
@@ -286,7 +291,11 @@ func (s *Storer[T]) DeletePublishedByExpiration(ctx context.Context, d time.Dura
 func (s *Storer[T]) Republish(ctx context.Context, msgID ...string) error {
 	err := s.db.Exec(
 		ctx,
-		fmt.Sprintf(`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`, s.config.schema, s.config.table),
+		fmt.Sprintf(
+			`UPDATE %q.%q SET published = FALSE WHERE id = ANY($1)`,
+			s.config.schema,
+			s.config.table,
+		),
 		msgID,
 	)
 	if err != nil {

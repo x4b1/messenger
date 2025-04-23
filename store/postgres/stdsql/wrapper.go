@@ -42,7 +42,7 @@ type executor struct {
 }
 
 func (c *executor) Exec(ctx context.Context, sql string, args ...any) error {
-	_, err := c.exec.ExecContext(ctx, sql, args...)
+	_, err := c.ExecContext(ctx, sql, args...)
 
 	return err
 }
