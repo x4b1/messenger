@@ -44,7 +44,10 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		if err != nil {
 			return
 		}
-		pgContainer.ConnectionString, err = pgContainer.PostgresContainer.ConnectionString(ctx, "sslmode=disable")
+		pgContainer.ConnectionString, err = pgContainer.PostgresContainer.ConnectionString(
+			ctx,
+			"sslmode=disable",
+		)
 	})
 	if err != nil {
 		return nil, err

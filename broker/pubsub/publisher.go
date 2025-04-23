@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"cloud.google.com/go/pubsub"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 )

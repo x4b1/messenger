@@ -8,7 +8,6 @@ import (
 
 	// initialize pgx stdlib driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/store/postgres"
 )
@@ -27,7 +26,11 @@ func Open[T any](ctx context.Context, connStr string, opts ...postgres.Option) (
 }
 
 // WithInstance returns Store source initialised with the given connection instance and config.
-func WithInstance[T any](ctx context.Context, db *sql.DB, opts ...postgres.Option) (*Store[T], error) {
+func WithInstance[T any](
+	ctx context.Context,
+	db *sql.DB,
+	opts ...postgres.Option,
+) (*Store[T], error) {
 	s, err := postgres.New[T](ctx, &conn{db, executor{db}}, opts...)
 
 	return &Store[T]{s}, err

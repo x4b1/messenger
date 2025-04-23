@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 )
@@ -17,11 +16,15 @@ var _ broker.Broker = &Publisher{}
 
 var awsStringDataType = aws.String("String") //nolint: gochecknoglobals // aws constant
 
-//go:generate moq -pkg sns_test -stub -out publisher_mock_test.go . Client
+//go:generate go tool moq -pkg sns_test -stub -out publisher_mock_test.go . Client
 
 // Client defines the AWS SNS methods used by the Publisher. This is used for testing purposes.
 type Client interface {
-	Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error)
+	Publish(
+		ctx context.Context,
+		params *sns.PublishInput,
+		optFns ...func(*sns.Options),
+	) (*sns.PublishOutput, error)
 }
 
 // Option is a function to set options to Publisher.

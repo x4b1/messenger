@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 )
@@ -49,7 +48,11 @@ func PublisherWithMessageIDKey(key string) PublisherOption {
 }
 
 // NewPublisherFromDefault returns a new Publisher instance.
-func NewPublisherFromDefault(ctx context.Context, queue string, opts ...PublisherOption) (*Publisher, error) {
+func NewPublisherFromDefault(
+	ctx context.Context,
+	queue string,
+	opts ...PublisherOption,
+) (*Publisher, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading aws config from default: %w", err)
@@ -59,7 +62,12 @@ func NewPublisherFromDefault(ctx context.Context, queue string, opts ...Publishe
 }
 
 // NewPublisher returns a new Publisher instance.
-func NewPublisher(ctx context.Context, svc Client, queue string, opts ...PublisherOption) (*Publisher, error) {
+func NewPublisher(
+	ctx context.Context,
+	svc Client,
+	queue string,
+	opts ...PublisherOption,
+) (*Publisher, error) {
 	q, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: aws.String(queue)})
 	if err != nil {
 		return nil, fmt.Errorf("getting queue url: %w", err)

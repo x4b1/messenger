@@ -14,11 +14,14 @@ func TestSubscription(t *testing.T) {
 	inMsg, _ := messenger.NewMessage([]byte("hello"))
 	name := "sub-name"
 	t.Run("handler success", func(t *testing.T) {
-		h := messenger.NewSubscription(name, func(ctx context.Context, msg messenger.Message) error {
-			require.Equal(t, inCtx, ctx)
-			require.Equal(t, inMsg, msg)
-			return nil
-		})
+		h := messenger.NewSubscription(
+			name,
+			func(ctx context.Context, msg messenger.Message) error {
+				require.Equal(t, inCtx, ctx)
+				require.Equal(t, inMsg, msg)
+				return nil
+			},
+		)
 		require.Equal(t, name, h.Name())
 		err := h.Handle(inCtx, inMsg)
 
@@ -30,7 +33,8 @@ func TestSubscription(t *testing.T) {
 			require.Equal(t, inCtx, ctx)
 			require.Equal(t, inMsg, msg)
 			return herr
-		}).Handle(inCtx, inMsg)
+		}).
+			Handle(inCtx, inMsg)
 
 		require.ErrorIs(t, err, herr)
 	})

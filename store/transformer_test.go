@@ -14,12 +14,14 @@ func TestTransformFunc(t *testing.T) {
 	expectedMsg, err := messenger.NewMessage([]byte(`some`))
 	require.NoError(t, err)
 
-	outmsg, err := store.TransformerFunc[*messenger.GenericMessage](func(ctx context.Context, m *messenger.GenericMessage) (messenger.Message, error) {
-		require.Equal(t, expectedCtx, ctx)
-		require.Equal(t, expectedMsg, m)
+	outmsg, err := store.TransformerFunc[*messenger.GenericMessage](
+		func(ctx context.Context, m *messenger.GenericMessage) (messenger.Message, error) {
+			require.Equal(t, expectedCtx, ctx)
+			require.Equal(t, expectedMsg, m)
 
-		return m, nil
-	}).Transform(expectedCtx, expectedMsg)
+			return m, nil
+		},
+	).Transform(expectedCtx, expectedMsg)
 
 	require.NoError(t, err)
 	require.Equal(t, expectedMsg, outmsg)

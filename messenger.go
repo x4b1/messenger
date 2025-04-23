@@ -14,7 +14,7 @@ const (
 	defaultBatchSize = 100
 )
 
-//go:generate moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorHandler
+//go:generate go tool moq -stub -pkg messenger_test -out mock_test.go . Store Publisher ErrorHandler
 
 // Store is the interface that wraps the message retrieval and update methods.
 type Store interface {

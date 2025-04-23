@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
-
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/internal/testhelpers"
 	"github.com/x4b1/messenger/store/postgres"
@@ -20,13 +19,21 @@ func TestStore_Open(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("fails connecting", func(t *testing.T) {
-		s, err := store.Open[messenger.Message](context.TODO(), "!!!!1234", postgres.WithTableName(tableName))
+		s, err := store.Open[messenger.Message](
+			context.TODO(),
+			"!!!!1234",
+			postgres.WithTableName(tableName),
+		)
 		require.Error(t, err)
 		require.Nil(t, s)
 	})
 
 	t.Run("success", func(t *testing.T) {
-		s, err := store.Open[messenger.Message](context.TODO(), pgConn.ConnectionString, postgres.WithTableName(tableName))
+		s, err := store.Open[messenger.Message](
+			context.TODO(),
+			pgConn.ConnectionString,
+			postgres.WithTableName(tableName),
+		)
 		require.NoError(t, err)
 		require.NotNil(t, s)
 	})
@@ -39,7 +46,11 @@ func TestStore_WithInstance(t *testing.T) {
 	connPool, err := pgxpool.New(context.TODO(), pgConn.ConnectionString)
 	require.NoError(t, err)
 
-	s, err := store.WithInstance[messenger.Message](context.TODO(), connPool, postgres.WithTableName(tableName))
+	s, err := store.WithInstance[messenger.Message](
+		context.TODO(),
+		connPool,
+		postgres.WithTableName(tableName),
+	)
 	require.NoError(t, err)
 	require.NotNil(t, s)
 }
@@ -53,7 +64,11 @@ func TestStore_Store(t *testing.T) {
 	connPool, err := pgxpool.New(ctx, pgConn.ConnectionString)
 	require.NoError(t, err)
 
-	s, err := store.WithInstance[messenger.Message](ctx, connPool, postgres.WithTableName(tableName))
+	s, err := store.WithInstance[messenger.Message](
+		ctx,
+		connPool,
+		postgres.WithTableName(tableName),
+	)
 	require.NoError(t, err)
 
 	tx, err := connPool.Begin(ctx)

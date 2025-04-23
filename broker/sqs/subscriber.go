@@ -134,7 +134,11 @@ func (s *Subscriber) subscribe(ctx context.Context, sub messenger.Subscription) 
 	return nil
 }
 
-func (s *Subscriber) processMessage(ctx context.Context, sub messenger.Subscription, msg types.Message) error {
+func (s *Subscriber) processMessage(
+	ctx context.Context,
+	sub messenger.Subscription,
+	msg types.Message,
+) error {
 	parsed := messenger.GenericMessage{
 		MsgPayload: []byte(aws.ToString(msg.Body)),
 	}
