@@ -17,8 +17,8 @@ require (
 	github.com/testcontainers/testcontainers-go v0.37.0
 	github.com/testcontainers/testcontainers-go/modules/localstack v0.37.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.37.0
-	golang.org/x/sync v0.15.0
-	google.golang.org/api v0.240.0
+	golang.org/x/sync v0.16.0
+	google.golang.org/api v0.241.0
 	google.golang.org/grpc v1.73.0
 )
 
