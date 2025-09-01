@@ -49,10 +49,15 @@ type Inspector struct {
 
 // ServeHTTP is a httpHandler that renders the index.tmpl with the messages stored.
 func (i *Inspector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/republish") {
+	if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/api/messages/republish") {
 		i.handleRepublish(w, r)
 		return
 	}
+	if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/api/messages") {
+		i.handleMessages(w, r)
+		return
+	}
+
 	i.handleIndex(w, r)
 }
 
@@ -107,4 +112,32 @@ func (i *Inspector) handleRepublish(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (i *Inspector) handleMessages(w http.ResponseWriter, r *http.Request) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page == 0 {
+		page = 1
+	}
+
+	res, err := i.s.Find(r.Context(), &Query{
+		Pagination: Pagination{
+			Page:  page,
+			Limit: defaultLimit,
+		},
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(struct {
+		Items []*messenger.GenericMessage `json:"items,omitempty"`
+		Total int                         `json:"total,omitempty"`
+	}{
+		Items: res.Msgs,
+		Total: res.Total,
+	})
 }

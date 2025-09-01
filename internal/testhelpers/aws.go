@@ -2,11 +2,10 @@ package testhelpers
 
 import (
 	"context"
-	"net"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
@@ -21,7 +20,7 @@ type LocalStackContainer struct {
 // CreateLocalStackContainer starts a local stack container with SNS and SQS services, and returns its instance.
 func CreateLocalStackContainer(ctx context.Context) (*LocalStackContainer, error) {
 	lsContainer, err := localstack.Run(ctx,
-		"localstack/localstack:3.7.2",
+		"localstack/localstack:4.7.0",
 		testcontainers.CustomizeRequest(testcontainers.GenericContainerRequest{
 			ContainerRequest: testcontainers.ContainerRequest{
 				Env: map[string]string{"SERVICES": "sns,sqs"},
@@ -32,22 +31,29 @@ func CreateLocalStackContainer(ctx context.Context) (*LocalStackContainer, error
 		return nil, err
 	}
 
-	host, err := lsContainer.Host(ctx)
+	endpoint, err := lsContainer.PortEndpoint(ctx, "4566/tcp", "")
+	if err != nil {
+		panic(err)
+	}
+	if !strings.Contains(endpoint, "http://") {
+		endpoint = "http://" + endpoint
+	}
+
+	awsCfg, err := config.LoadDefaultConfig(
+		ctx,
+		config.WithRegion("eu-west-1"),
+		config.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+			return aws.Credentials{
+				CanExpire:       false,
+				AccessKeyID:     "test",
+				SecretAccessKey: "test",
+			}, nil
+		})),
+		config.WithBaseEndpoint(endpoint),
+	)
 	if err != nil {
 		return nil, err
 	}
-
-	port, err := lsContainer.MappedPort(ctx, nat.Port("4566/tcp"))
-	if err != nil {
-		return nil, err
-	}
-
-	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
-	if err != nil {
-		return nil, err
-	}
-
-	awsCfg.BaseEndpoint = aws.String("http://" + net.JoinHostPort(host, port.Port()))
 
 	return &LocalStackContainer{
 		awsCfg,

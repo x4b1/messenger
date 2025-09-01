@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messenger</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f9fafb;
+        color: #333;
+      }
+      .container {
+        padding: 2rem;
+      }
+      .card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      .card .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+      .table th,
+      .table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: left;
+      }
+      .table thead {
+        background: #009879;
+        color: white;
+      }
+      .table tbody tr:nth-child(even) {
+        background: #f3f3f3;
+      }
+      .table tbody tr:hover {
+        background: #eefaf7;
+      }
+      .btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+      }
+      .btn-outline {
+        background: white;
+        color: #009879;
+        border: 1px solid #009879;
+      }
+      .btn-outline:hover {
+        background: #009879;
+        color: white;
+      }
+      .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: #009879;
+      }
+      .btn-icon:disabled {
+        color: #ccc;
+        cursor: not-allowed;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        color: white;
+      }
+      .badge.success {
+        background: #28a745;
+      }
+      .badge.error {
+        background: #35a4dc;
+      }
+      .loading {
+        text-align: center;
+        padding: 1rem;
+      }
+      .hidden {
+        display: none;
+      }
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 1rem;
+        gap: 0.5rem;
+      }
+      .pagination button {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .pagination button.active {
+        background: #009879;
+        color: white;
+        border-color: #009879;
+      }
+      .pagination button:disabled {
+        background: #eee;
+        color: #999;
+        cursor: not-allowed;
+      }
+      .string {
+        color: green;
+      }
+
+      .number {
+        color: darkorange;
+      }
+
+      .boolean {
+        color: blue;
+      }
+
+      .null {
+        color: magenta;
+      }
+
+      .key {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="card">
+        <div class="header">
+          <h2>Messages</h2>
+          <button id="refreshBtn" class="btn btn-outline">⟳ Refresh</button>
+        </div>
+        <div id="loading" class="loading hidden">⏳ Loading...</div>
+        <div class="table-wrapper">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Metadata</th>
+                <th>Payload</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="messagesBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </section>
+    </main>
+
+    <script>
+      const tbody = document.getElementById("messagesBody");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const loading = document.getElementById("loading");
+      const paginationEl = document.getElementById("pagination");
+      let currentPage = 1;
+      let totalPages = 1;
+
+      async function fetchMessages(page = 1) {
+        loading.classList.remove("hidden");
+        tbody.innerHTML = "";
+        try {
+          const resp = await fetch(`/api/messages?page=${page}`);
+          const data = await resp.json();
+          renderMessages(data.items);
+          totalPages = Math.ceil(data.total / 25);
+          currentPage = page;
+          renderPagination();
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="6">❌ Failed to load messages</td></tr>`;
+        }
+        loading.classList.add("hidden");
+      }
+
+      function renderMessages(messages) {
+        tbody.innerHTML = messages
+          .map(
+            (msg) => `
+        <tr>
+          <td title="${msg.id}" class="truncate">${msg.id}</td>
+          <td>
+            <ul>
+              ${(msg.metadata ? Object.entries(msg.metadata) : [])
+                .map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`)
+                .join("")}
+            </ul>
+          </td>
+          <td><pre class="json">${syntaxHighlight(msg.payload)}</pre></td>
+          <td>${
+            msg.published
+              ? `<span class="badge success">Published</span>`
+              : `<span class="badge error">Pending</span>`
+          }</td>
+          <td>${new Date(msg.at).toLocaleString()}</td>
+          <td class="text-center">
+            <button class="btn-icon" onclick="republish('${msg.id}')">⟳</button>
+          </td>
+        </tr>
+      `
+          )
+          .join("");
+      }
+
+      function renderPagination() {
+        paginationEl.innerHTML = "";
+        const prevBtn = document.createElement("button");
+        prevBtn.textContent = "Prev";
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => fetchMessages(currentPage - 1);
+        paginationEl.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          if (i === currentPage) btn.classList.add("active");
+          btn.onclick = () => fetchMessages(i);
+          paginationEl.appendChild(btn);
+        }
+
+        const nextBtn = document.createElement("button");
+        nextBtn.textContent = "Next";
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => fetchMessages(currentPage + 1);
+        paginationEl.appendChild(nextBtn);
+      }
+
+      refreshBtn.addEventListener("click", () => fetchMessages(currentPage));
+
+      function syntaxHighlight(json) {
+        if (!json) return ""; //no JSON from response
+
+        json = JSON.stringify(json, null, 2);
+        json = json
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        return json.replace(
+          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+          function (match) {
+            var cls = "number";
+            if (/^"/.test(match)) {
+              if (/:$/.test(match)) {
+                cls = "key";
+              } else {
+                cls = "string";
+              }
+            } else if (/true|false/.test(match)) {
+              cls = "boolean";
+            } else if (/null/.test(match)) {
+              cls = "null";
+            }
+            return '<span class="' + cls + '">' + match + "</span>";
+          }
+        );
+      }
+
+      window.republish = async function (msgId) {
+        const btn = document.querySelector(
+          `button[onclick=\"republish('${msgId}')\"]`
+        );
+        btn.disabled = true;
+        try {
+          const resp = await fetch("/api/messages/republish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message_ids: [msgId] }),
+          });
+          if (resp.ok) fetchMessages(currentPage);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+
+      fetchMessages();
+    </script>
+  </body>
+</html>

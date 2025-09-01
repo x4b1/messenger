@@ -1,6 +1,7 @@
 package messenger
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -24,6 +25,8 @@ func NewMessage(payload []byte) (*GenericMessage, error) {
 	}, nil
 }
 
+var _ json.Marshaler = (*GenericMessage)(nil)
+
 // A Message represents a message to be sent to message message queue.
 type Message interface {
 	ID() string
@@ -46,6 +49,23 @@ type GenericMessage struct {
 	MsgPublished bool
 	// At represent the moment of the message creation.
 	MsgAt time.Time
+}
+
+// MarshalJSON implements json.Marshaler.
+func (m *GenericMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		ID        string          `json:"id,omitempty"`
+		Metadata  Metadata        `json:"metadata,omitempty"`
+		Payload   json.RawMessage `json:"payload,omitempty"`
+		Published bool            `json:"published,omitempty"`
+		At        time.Time       `json:"at,omitempty"`
+	}{
+		ID:        m.MsgID,
+		Metadata:  m.MsgMetadata,
+		Payload:   m.MsgPayload,
+		Published: m.MsgPublished,
+		At:        m.MsgAt,
+	})
 }
 
 // ID returns the unique identifier of the message.

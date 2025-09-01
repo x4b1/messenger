@@ -136,7 +136,7 @@ func publishEvents(ctx context.Context, s *pgx.Store[any]) error {
 	}
 }
 
-const messageBatch = 3
+const messageBatch = 50
 
 func generateMessages() []any {
 	traceID := uuid.NewString()
