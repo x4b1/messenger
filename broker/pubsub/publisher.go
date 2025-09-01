@@ -3,8 +3,9 @@ package pubsub
 
 import (
 	"context"
+	"maps"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 )
@@ -17,6 +18,7 @@ type Option func(*Publisher)
 // WithMetaOrderingKey setups the metadata key to get the ordering key.
 func WithMetaOrderingKey(key string) Option {
 	return func(p *Publisher) {
+		p.publisher.EnableMessageOrdering = true
 		p.metaOrdKey = key
 	}
 }
@@ -24,6 +26,7 @@ func WithMetaOrderingKey(key string) Option {
 // WithDefaultOrderingKey setups the default ordering key.
 func WithDefaultOrderingKey(key string) Option {
 	return func(p *Publisher) {
+		p.publisher.EnableMessageOrdering = true
 		p.defaultOrdKey = key
 	}
 }
@@ -35,11 +38,16 @@ func WithMessageIDKey(key string) Option {
 	}
 }
 
+// Open returns a new Publisher instance.
+func Open(pubsubClient *pubsub.Client, topicID string, opts ...Option) *Publisher {
+	return New(pubsubClient.Publisher(topicID), opts...)
+}
+
 // New returns a new Publisher instance.
-func New(topic *pubsub.Topic, opts ...Option) *Publisher {
+func New(publisher *pubsub.Publisher, opts ...Option) *Publisher {
 	p := Publisher{
-		topic:    topic,
-		msgIDKey: broker.MessageIDKey,
+		publisher: publisher,
+		msgIDKey:  broker.MessageIDKey,
 	}
 
 	for _, opt := range opts {
@@ -52,7 +60,7 @@ func New(topic *pubsub.Topic, opts ...Option) *Publisher {
 // Publisher handles the pubsub topic messages.
 type Publisher struct {
 	// pubsub topic instance where are going to publish messages
-	topic *pubsub.Topic
+	publisher *pubsub.Publisher
 	// meta property of the message to use as ordering key
 	metaOrdKey string
 	// default ordering key in case not provided in message metadata
@@ -64,13 +72,11 @@ type Publisher struct {
 // Publish publishes the given message to the pubsub topic.
 func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := make(map[string]string)
-	for k, v := range msg.Metadata() {
-		md[k] = v
-	}
+	maps.Copy(md, msg.Metadata())
 
 	md[p.msgIDKey] = msg.ID()
 
-	_, err := p.topic.Publish(ctx, &pubsub.Message{
+	_, err := p.publisher.Publish(ctx, &pubsub.Message{
 		Attributes:  md,
 		Data:        msg.Payload(),
 		OrderingKey: p.orderingKey(msg),

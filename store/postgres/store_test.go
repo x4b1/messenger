@@ -91,7 +91,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require.NoError(err)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
-		for i := 0; i < totalMsgs; i++ {
+		for i := range totalMsgs {
 			var err error
 			msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 			require.NoError(err)
@@ -130,7 +130,7 @@ func TestStorePublishMessages(t *testing.T) {
 		require := require.New(t)
 
 		publishMsgs := make([]messenger.Message, totalMsgs)
-		for i := 0; i < totalMsgs; i++ {
+		for i := range totalMsgs {
 			var err error
 			msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 			require.NoError(err)
@@ -317,11 +317,12 @@ func TestFind(t *testing.T) {
 	require := require.New(t)
 
 	publishMsgs := make([]messenger.Message, 15)
-	for i := 0; i < 15; i++ {
+	for i := range 15 {
 		var err error
 		msg, err := messenger.NewMessage([]byte(strconv.Itoa(i + 1)))
 		require.NoError(err)
 		msg.SetMetadata("some", fmt.Sprintf("meta-%d", i+1))
+		msg.MsgAt = time.Now().Add(time.Duration(i) * time.Second)
 		publishMsgs[i] = msg
 	}
 
