@@ -1,7 +1,9 @@
 package messenger_test
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -35,5 +37,15 @@ func TestGenericMessage(t *testing.T) {
 
 		require.Equal(t, msg.MsgPublished, msg.Published())
 		require.Equal(t, msg.MsgAt, msg.At())
+
+		b, err := json.Marshal(msg)
+		require.NoError(t, err)
+		require.JSONEq(t, `{
+			"id":"`+msg.ID()+`",
+			"metadata":{"`+mdKey+`":"`+mdValue+`"},
+			"payload":"`+somePayload+`",
+			"published":false,
+			"at":"`+msg.At().Format(time.RFC3339Nano)+`"
+		}`, string(b))
 	})
 }

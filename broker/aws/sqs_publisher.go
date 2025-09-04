@@ -1,4 +1,4 @@
-package sqs
+package aws
 
 import (
 	"context"
@@ -12,84 +12,49 @@ import (
 	"github.com/x4b1/messenger/broker"
 )
 
-var _ broker.Broker = &Publisher{}
+var _ broker.Broker = &SQSPublisher{}
 
-var awsStringDataType = aws.String("String") //nolint: gochecknoglobals // aws constant
-
-// PublisherOption is a function to set options to Publisher.
-type PublisherOption func(*Publisher)
-
-// PublisherWithMetaOrderingKey setups the metadata key to get the ordering key.
-func PublisherWithMetaOrderingKey(key string) PublisherOption {
-	return func(p *Publisher) {
-		p.metaOrdKey = key
-	}
+// SQSPublisherOption defines an interface for applying configuration options to SQSPublisher instances.
+type SQSPublisherOption interface {
+	applySQSPublisher(*SQSPublisher)
 }
 
-// PublisherWithDefaultOrderingKey setups the default ordering key.
-func PublisherWithDefaultOrderingKey(key string) PublisherOption {
-	return func(p *Publisher) {
-		p.defaultOrdKey = key
-	}
-}
-
-// PublisherWithFifoQueue setups the flag to use fifo queue.
-func PublisherWithFifoQueue(fifo bool) PublisherOption {
-	return func(p *Publisher) {
-		p.fifo = fifo
-	}
-}
-
-// PublisherWithMessageIDKey modify default message id key.
-func PublisherWithMessageIDKey(key string) PublisherOption {
-	return func(p *Publisher) {
-		p.msgIDKey = key
-	}
-}
-
-// NewPublisherFromDefault returns a new Publisher instance.
-func NewPublisherFromDefault(
+// OpenSQSPublisher creates a new SQSPublisher using the default AWS configuration.
+func OpenSQSPublisher(
 	ctx context.Context,
-	queue string,
-	opts ...PublisherOption,
-) (*Publisher, error) {
+	queueARN string,
+	opts ...SQSPublisherOption,
+) (*SQSPublisher, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("loading aws config from default: %w", err)
+		return nil, err
 	}
 
-	return NewPublisher(ctx, sqs.NewFromConfig(cfg), queue, opts...)
+	return NewSQSPublisher(sqs.NewFromConfig(cfg), queueARN, opts...), nil
 }
 
-// NewPublisher returns a new Publisher instance.
-func NewPublisher(
-	ctx context.Context,
-	svc Client,
-	queue string,
-	opts ...PublisherOption,
-) (*Publisher, error) {
-	q, err := svc.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{QueueName: aws.String(queue)})
-	if err != nil {
-		return nil, fmt.Errorf("getting queue url: %w", err)
-	}
-
-	p := Publisher{
+// NewSQSPublisher creates a new SQSPublisher with the given SQS client and queue ARN.
+func NewSQSPublisher(svc SQSClient, queueARN string, opts ...SQSPublisherOption) *SQSPublisher {
+	p := SQSPublisher{
 		svc:      svc,
-		queue:    aws.ToString(q.QueueUrl),
+		queue:    queueARN,
 		msgIDKey: broker.MessageIDKey,
 	}
 
 	for _, opt := range opts {
-		opt(&p)
+		opt.applySQSPublisher(&p)
 	}
 
-	return &p, nil
+	return &p
 }
 
-// Publisher handles the pubsub topic messages.
-type Publisher struct {
+// SQSPublisher is an implementation of broker.Broker that publishes messages to AWS SQS queues.
+// It supports both standard and FIFO queues, allowing for message ordering and deduplication.
+// The publisher can be customized via SQSPublisherOption to set ordering keys, deduplication, and other behaviors.
+// Messages are published with metadata as SQS message attributes, including a message ID for tracking.
+type SQSPublisher struct {
 	// sqs service instance where are going to publish messages
-	svc Client
+	svc SQSClient
 	// queue url where are going to publish messages
 	queue string
 	// meta property of the message to use as ordering key
@@ -103,7 +68,7 @@ type Publisher struct {
 }
 
 // Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
+func (p SQSPublisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := msg.Metadata()
 	att := make(map[string]types.MessageAttributeValue)
 
@@ -136,7 +101,7 @@ func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 }
 
 // messageDeduplication checks if the publisher is setup as fifo and returns the message deduplication id.
-func (p Publisher) messageDeduplication(msg messenger.Message) *string {
+func (p SQSPublisher) messageDeduplication(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}
@@ -146,7 +111,7 @@ func (p Publisher) messageDeduplication(msg messenger.Message) *string {
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg messenger.Message) *string {
+func (p SQSPublisher) orderingKey(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}

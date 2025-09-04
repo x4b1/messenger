@@ -1,4 +1,4 @@
-package sns_test
+package aws_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
-	publisher "github.com/x4b1/messenger/broker/sns"
+	publisher "github.com/x4b1/messenger/broker/aws"
 )
 
 const (
@@ -35,19 +35,18 @@ var msg = &messenger.GenericMessage{
 	MsgPayload: []byte("some message"),
 }
 
-func TestPublish(t *testing.T) {
+func TestSNS_Publish(t *testing.T) {
 	t.Parallel()
 	t.Run("fails", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		snsMock := ClientMock{
+		snsMock := SNSClientMock{
 			PublishFunc: func(context.Context, *sns.PublishInput, ...func(*sns.Options)) (*sns.PublishOutput, error) {
 				return nil, errAws
 			},
 		}
 
-		pub, err := publisher.New(&snsMock, topicARN)
-		require.NoError(t, err)
+		pub := publisher.NewSNSPublisher(&snsMock, topicARN)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
 	})
@@ -55,7 +54,7 @@ func TestPublish(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		expectedInput *sns.PublishInput
-		opts          []publisher.Option
+		opts          []publisher.SNSPublisherOption
 	}{
 		{
 			name: "no ordering key",
@@ -73,7 +72,7 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "default ordering key",
-			opts: []publisher.Option{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
+			opts: []publisher.SNSPublisherOption{publisher.WithFifoQueue(true), publisher.WithDefaultOrderingKey(defaultOrdKey)},
 			expectedInput: &sns.PublishInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
 				Message:                aws.String(string(msg.Payload())),
@@ -88,7 +87,7 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.Option{
+			opts: []publisher.SNSPublisherOption{
 				publisher.WithFifoQueue(true),
 				publisher.WithDefaultOrderingKey(defaultOrdKey),
 				publisher.WithMetaOrderingKey(metaKey),
@@ -107,7 +106,7 @@ func TestPublish(t *testing.T) {
 		},
 		{
 			name: "custom message id key",
-			opts: []publisher.Option{
+			opts: []publisher.SNSPublisherOption{
 				publisher.WithMessageIDKey("custom_key"),
 			},
 			expectedInput: &sns.PublishInput{
@@ -127,11 +126,9 @@ func TestPublish(t *testing.T) {
 			r := require.New(t)
 			ctx := context.Background()
 
-			snsMock := ClientMock{}
+			snsMock := SNSClientMock{}
 
-			pub, err := publisher.New(&snsMock, topicARN, tc.opts...)
-			r.NoError(err)
-
+			pub := publisher.NewSNSPublisher(&snsMock, topicARN, tc.opts...)
 			r.NoError(pub.Publish(ctx, msg))
 
 			r.Len(snsMock.PublishCalls(), 1)
