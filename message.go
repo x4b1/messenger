@@ -3,6 +3,7 @@ package messenger
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,16 +54,24 @@ type GenericMessage struct {
 
 // MarshalJSON implements json.Marshaler.
 func (m *GenericMessage) MarshalJSON() ([]byte, error) {
+	var payload any
+	payloadStr := strings.TrimSpace(string(m.MsgPayload))
+
+	if strings.HasPrefix("{", payloadStr) && strings.HasSuffix("}", payloadStr) {
+		payload = json.RawMessage(payloadStr)
+	} else {
+		payload = payloadStr
+	}
 	return json.Marshal(struct {
-		ID        string          `json:"id,omitempty"`
-		Metadata  Metadata        `json:"metadata,omitempty"`
-		Payload   json.RawMessage `json:"payload,omitempty"`
-		Published bool            `json:"published,omitempty"`
-		At        time.Time       `json:"at,omitempty"`
+		ID        string    `json:"id"`
+		Metadata  Metadata  `json:"metadata"`
+		Payload   any       `json:"payload"`
+		Published bool      `json:"published"`
+		At        time.Time `json:"at"`
 	}{
 		ID:        m.MsgID,
 		Metadata:  m.MsgMetadata,
-		Payload:   m.MsgPayload,
+		Payload:   payload,
 		Published: m.MsgPublished,
 		At:        m.MsgAt,
 	})

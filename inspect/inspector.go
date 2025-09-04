@@ -131,13 +131,18 @@ func (i *Inspector) handleMessages(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
-	json.NewEncoder(w).Encode(struct {
+	err = json.NewEncoder(w).Encode(struct {
 		Items []*messenger.GenericMessage `json:"items,omitempty"`
 		Total int                         `json:"total,omitempty"`
 	}{
 		Items: res.Msgs,
 		Total: res.Total,
 	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

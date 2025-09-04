@@ -1,71 +1,33 @@
-package sqs_test
+package aws_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
-	publisher "github.com/x4b1/messenger/broker/sqs"
+	publisher "github.com/x4b1/messenger/broker/aws"
 )
 
 const (
-	queue    = "test-queue"
-	queueURL = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
-
-	defaultOrdKey = "default-ordering"
-
-	metaKey       = "meta-key"
-	orderingValue = "value-1"
+	queueARN = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
 )
-
-var errAws = errors.New("aws error")
-
-var msg = &messenger.GenericMessage{
-	MsgID: uuid.NewString(),
-	MsgMetadata: map[string]string{
-		"aggregate_id": "29a7556a-ae85-4c1d-8f04-d57ed3122586",
-		metaKey:        orderingValue,
-	},
-	MsgPayload: []byte("some message"),
-}
-
-func TestFailsGettingQueueURL(t *testing.T) {
-	sqsMock := ClientMock{
-		GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-			return nil, errAws
-		},
-	}
-
-	_, err := publisher.NewPublisher(context.Background(), &sqsMock, queue)
-	require.ErrorIs(t, err, errAws)
-}
 
 func TestPublish(t *testing.T) {
 	t.Parallel()
 	t.Run("fails", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		sqsMock := ClientMock{
-			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-				return &sqs.GetQueueUrlOutput{
-					QueueUrl: aws.String(queueURL),
-				}, nil
-			},
-
+		sqsMock := SQSClientMock{
 			SendMessageFunc: func(context.Context, *sqs.SendMessageInput, ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
 				return nil, errAws
 			},
 		}
 
-		pub, err := publisher.NewPublisher(ctx, &sqsMock, queue)
-		require.NoError(t, err)
+		pub := publisher.NewSQSPublisher(&sqsMock, queueARN)
 
 		require.ErrorIs(t, pub.Publish(ctx, msg), errAws)
 	})
@@ -73,7 +35,7 @@ func TestPublish(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		expectedInput *sqs.SendMessageInput
-		opts          []publisher.PublisherOption
+		opts          []publisher.SQSPublisherOption
 	}{
 		{
 			name: "no ordering key",
@@ -86,14 +48,14 @@ func TestPublish(t *testing.T) {
 					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
-				QueueUrl: aws.String(queueURL),
+				QueueUrl: aws.String(queueARN),
 			},
 		},
 		{
 			name: "default ordering key",
-			opts: []publisher.PublisherOption{
-				publisher.PublisherWithFifoQueue(true),
-				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
+			opts: []publisher.SQSPublisherOption{
+				publisher.WithFifoQueue(true),
+				publisher.WithDefaultOrderingKey(defaultOrdKey),
 			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
@@ -104,15 +66,15 @@ func TestPublish(t *testing.T) {
 					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
-				QueueUrl: aws.String(queueURL),
+				QueueUrl: aws.String(queueARN),
 			},
 		},
 		{
 			name: "metadata ordering key",
-			opts: []publisher.PublisherOption{
-				publisher.PublisherWithFifoQueue(true),
-				publisher.PublisherWithDefaultOrderingKey(defaultOrdKey),
-				publisher.PublisherWithMetaOrderingKey(metaKey),
+			opts: []publisher.SQSPublisherOption{
+				publisher.WithFifoQueue(true),
+				publisher.WithDefaultOrderingKey(defaultOrdKey),
+				publisher.WithMetaOrderingKey(metaKey),
 			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageDeduplicationId: aws.String(msg.ID()),
@@ -123,13 +85,13 @@ func TestPublish(t *testing.T) {
 					metaKey:             {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 					broker.MessageIDKey: {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
-				QueueUrl: aws.String(queueURL),
+				QueueUrl: aws.String(queueARN),
 			},
 		},
 		{
 			name: "custom message id key",
-			opts: []publisher.PublisherOption{
-				publisher.PublisherWithMessageIDKey("custom_key"),
+			opts: []publisher.SQSPublisherOption{
+				publisher.WithMessageIDKey("custom_key"),
 			},
 			expectedInput: &sqs.SendMessageInput{
 				MessageBody: aws.String(string(msg.Payload())),
@@ -138,7 +100,7 @@ func TestPublish(t *testing.T) {
 					metaKey:        {DataType: aws.String("String"), StringValue: aws.String(orderingValue)},
 					"custom_key":   {DataType: aws.String("String"), StringValue: aws.String(msg.MsgID)},
 				},
-				QueueUrl: aws.String(queueURL),
+				QueueUrl: aws.String(queueARN),
 			},
 		},
 	} {
@@ -148,16 +110,9 @@ func TestPublish(t *testing.T) {
 			r := require.New(t)
 			ctx := context.Background()
 
-			sqsMock := ClientMock{
-				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
-					return &sqs.GetQueueUrlOutput{
-						QueueUrl: aws.String(queueURL),
-					}, nil
-				},
-			}
+			sqsMock := SQSClientMock{}
 
-			pub, err := publisher.NewPublisher(ctx, &sqsMock, queue, tc.opts...)
-			r.NoError(err)
+			pub := publisher.NewSQSPublisher(&sqsMock, queueARN, tc.opts...)
 
 			r.NoError(pub.Publish(ctx, msg))
 

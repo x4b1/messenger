@@ -1,4 +1,4 @@
-package sqs_test
+package aws_test
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/stretchr/testify/require"
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
-	"github.com/x4b1/messenger/broker/sqs"
+	awsx "github.com/x4b1/messenger/broker/aws"
 )
 
 var errUnexpected = errors.New("error")
@@ -19,7 +19,7 @@ var errUnexpected = errors.New("error")
 var (
 	awsMessageID = "104ed4b7-f36e-4b71-af4d-72fa0857ef33"
 	customMsgID  = "a3fe4a83-ebb0-425f-96b6-edf322fc4dba"
-	message      = &awssqs.ReceiveMessageOutput{
+	message      = &sqs.ReceiveMessageOutput{
 		Messages: []types.Message{
 			{
 				MessageId: aws.String(awsMessageID),
@@ -33,15 +33,15 @@ var (
 	}
 )
 
-func TestSubscriber(t *testing.T) {
-	queueURLOut := &awssqs.GetQueueUrlOutput{
-		QueueUrl: aws.String("https://sqs.eu-west-1.amazonaws.com/12345/test"),
+func TestSQSSubscriber_Subscribe(t *testing.T) {
+	queueURLOut := &sqs.GetQueueUrlOutput{
+		QueueUrl: aws.String("https://awsx.eu-west-1.amazonaws.com/12345/test"),
 	}
 	t.Run("fails getting queue url", func(t *testing.T) {
 		testSub := messenger.NewSubscription("test", nil)
 
-		s := sqs.NewSubscriber(&ClientMock{
-			GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(&SQSClientMock{
+			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return nil, errUnexpected
 			},
 		})
@@ -53,11 +53,11 @@ func TestSubscriber(t *testing.T) {
 	t.Run("fails receiving messages", func(t *testing.T) {
 		testSub := messenger.NewSubscription("test", nil)
 
-		s := sqs.NewSubscriber(&ClientMock{
-			GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(&SQSClientMock{
+			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return queueURLOut, nil
 			},
-			ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+			ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 				return nil, errUnexpected
 			},
 		})
@@ -73,16 +73,16 @@ func TestSubscriber(t *testing.T) {
 
 		receiveTimeCalls := 0
 
-		s := sqs.NewSubscriber(&ClientMock{
-			GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(&SQSClientMock{
+			GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 				return queueURLOut, nil
 			},
-			ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+			ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 				receiveTimeCalls++
 				if receiveTimeCalls >= 2 {
 					cancel()
 				}
-				return &awssqs.ReceiveMessageOutput{}, nil
+				return &sqs.ReceiveMessageOutput{}, nil
 			},
 		})
 		s.Register(testSub)
@@ -98,12 +98,12 @@ func TestSubscriber(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		s := sqs.NewSubscriber(
-			&ClientMock{
-				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(
+			&SQSClientMock{
+				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return queueURLOut, nil
 				},
-				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+				ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 					cancel()
 
 					return message, nil
@@ -122,17 +122,17 @@ func TestSubscriber(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		s := sqs.NewSubscriber(
-			&ClientMock{
-				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(
+			&SQSClientMock{
+				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return queueURLOut, nil
 				},
-				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+				ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 					cancel()
 
 					return message, nil
 				},
-				DeleteMessageFunc: func(context.Context, *awssqs.DeleteMessageInput, ...func(*awssqs.Options)) (*awssqs.DeleteMessageOutput, error) {
+				DeleteMessageFunc: func(context.Context, *sqs.DeleteMessageInput, ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error) {
 					return nil, errUnexpected
 				},
 			})
@@ -161,12 +161,12 @@ func TestSubscriber(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		s := sqs.NewSubscriber(
-			&ClientMock{
-				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(
+			&SQSClientMock{
+				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return queueURLOut, nil
 				},
-				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+				ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 					cancel()
 
 					return message, nil
@@ -194,15 +194,15 @@ func TestSubscriber(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		s := sqs.NewSubscriber(
-			&ClientMock{
-				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(
+			&SQSClientMock{
+				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return queueURLOut, nil
 				},
-				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+				ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 					cancel()
 
-					return &awssqs.ReceiveMessageOutput{
+					return &sqs.ReceiveMessageOutput{
 						Messages: []types.Message{
 							{
 								MessageId: aws.String(awsMessageID),
@@ -236,15 +236,15 @@ func TestSubscriber(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		s := sqs.NewSubscriber(
-			&ClientMock{
-				GetQueueUrlFunc: func(context.Context, *awssqs.GetQueueUrlInput, ...func(*awssqs.Options)) (*awssqs.GetQueueUrlOutput, error) {
+		s := awsx.NewSQSSubscriber(
+			&SQSClientMock{
+				GetQueueUrlFunc: func(context.Context, *sqs.GetQueueUrlInput, ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
 					return queueURLOut, nil
 				},
-				ReceiveMessageFunc: func(context.Context, *awssqs.ReceiveMessageInput, ...func(*awssqs.Options)) (*awssqs.ReceiveMessageOutput, error) {
+				ReceiveMessageFunc: func(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 					cancel()
 
-					return &awssqs.ReceiveMessageOutput{
+					return &sqs.ReceiveMessageOutput{
 						Messages: []types.Message{
 							{
 								MessageId: aws.String(awsMessageID),
@@ -257,7 +257,7 @@ func TestSubscriber(t *testing.T) {
 						},
 					}, nil
 				},
-			}, sqs.SubscriberWithMessageIDKey("custom_key"))
+			}, awsx.WithMessageIDKey("custom_key"))
 		s.Register(testSub)
 
 		require.NoError(t, s.Listen(ctx))

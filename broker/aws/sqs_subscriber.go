@@ -1,8 +1,9 @@
-package sqs
+package aws
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -19,43 +20,26 @@ const (
 	defaultReceiveMessages = 1
 )
 
-// SubscriberOption is a function to set options to Subscriber.
-type SubscriberOption func(*Subscriber)
-
-// SubscriberWithMaxWaitSeconds replaces default max time wait seconds.
-func SubscriberWithMaxWaitSeconds(waitSec int) SubscriberOption {
-	return func(s *Subscriber) {
-		s.maxWaitSeconds = waitSec
-	}
+// SQSSubscriberOption defines an interface for applying configuration options to SQSSubscriber instances.
+type SQSSubscriberOption interface {
+	applySQSSubscriber(*SQSSubscriber)
 }
 
-// SubscriberWithMaxMessages replaces default number of messages to receive.
-func SubscriberWithMaxMessages(msgs int) SubscriberOption {
-	return func(s *Subscriber) {
-		s.maxMessages = msgs
-	}
-}
-
-// SubscriberWithMessageIDKey replaces default metadata key for id.
-func SubscriberWithMessageIDKey(key string) SubscriberOption {
-	return func(s *Subscriber) {
-		s.msgIDKey = key
-	}
-}
-
-// NewSubscriberFromDefault returns a new Publisher instance.
-func NewSubscriberFromDefault(ctx context.Context, opts ...SubscriberOption) (*Subscriber, error) {
+// OpenSQSSubscriber initializes a new SQSSubscriber using the default AWS configuration and provided options.
+// It loads the AWS config from the environment and returns a ready-to-use subscriber.
+func OpenSQSSubscriber(ctx context.Context, opts ...SQSSubscriberOption) (*SQSSubscriber, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading aws config from default: %w", err)
 	}
 
-	return NewSubscriber(sqs.NewFromConfig(cfg), opts...), nil
+	return NewSQSSubscriber(sqs.NewFromConfig(cfg), opts...), nil
 }
 
-// NewSubscriber returns a new Publisher instance.
-func NewSubscriber(cli Client, opts ...SubscriberOption) *Subscriber {
-	s := Subscriber{
+// NewSQSSubscriber creates a new SQSSubscriber with the given AWS config, SQS client, and options.
+// This function allows for custom configuration and dependency injection.
+func NewSQSSubscriber(cli SQSClient, opts ...SQSSubscriberOption) *SQSSubscriber {
+	s := SQSSubscriber{
 		cli:        cli,
 		subs:       make([]messenger.Subscription, 0),
 		errHandler: log.NewDefault(),
@@ -67,15 +51,17 @@ func NewSubscriber(cli Client, opts ...SubscriberOption) *Subscriber {
 	}
 
 	for _, opt := range opts {
-		opt(&s)
+		opt.applySQSSubscriber(&s)
 	}
 
 	return &s
 }
 
-// Subscriber registers subscriptions to AWS SQS.
-type Subscriber struct {
-	cli        Client
+// SQSSubscriber manages subscriptions and message processing for AWS SQS queues.
+// It handles receiving, processing, and deleting messages from SQS queues.
+type SQSSubscriber struct {
+	cli SQSClient
+
 	errHandler messenger.ErrorHandler
 	group      *errgroup.Group
 	subs       []messenger.Subscription
@@ -85,19 +71,23 @@ type Subscriber struct {
 	msgIDKey       string
 }
 
-// Register adds subscriptions to subscriber.
-func (s *Subscriber) Register(subs ...messenger.Subscription) {
+// Register adds one or more subscriptions to the SQSSubscriber.
+// Subscriptions define the queues and handlers to listen to.
+func (s *SQSSubscriber) Register(subs ...messenger.Subscription) {
 	s.subs = append(s.subs, subs...)
 }
 
 // subscribe registers one subscription.
-func (s *Subscriber) subscribe(ctx context.Context, sub messenger.Subscription) error {
+func (s *SQSSubscriber) subscribe(ctx context.Context, sub messenger.Subscription) error {
+	arnSplit := strings.Split(sub.Name(), ":")
+
 	queueURL, err := s.cli.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
-		QueueName: aws.String(sub.Name()),
+		QueueName: aws.String(arnSplit[len(arnSplit)-1]),
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %w", sub.Name(), err)
+		return fmt.Errorf("getting queue url for %s: %w", sub.Name(), err)
 	}
+
 	s.group.Go(func() error {
 		for {
 			select {
@@ -111,7 +101,7 @@ func (s *Subscriber) subscribe(ctx context.Context, sub messenger.Subscription) 
 					MessageAttributeNames: []string{"All"},
 				})
 				if err != nil {
-					return fmt.Errorf("%s: %w", aws.ToString(queueURL.QueueUrl), err)
+					return fmt.Errorf("%s: %w", sub.Name(), err)
 				}
 
 				for _, msg := range msgs.Messages {
@@ -134,7 +124,7 @@ func (s *Subscriber) subscribe(ctx context.Context, sub messenger.Subscription) 
 	return nil
 }
 
-func (s *Subscriber) processMessage(
+func (s *SQSSubscriber) processMessage(
 	ctx context.Context,
 	sub messenger.Subscription,
 	msg types.Message,
@@ -158,8 +148,9 @@ func (s *Subscriber) processMessage(
 	return sub.Handle(ctx, &parsed)
 }
 
-// Listen starts listening for events.
-func (s *Subscriber) Listen(ctx context.Context) error {
+// Listen starts the message polling and processing loop for all registered subscriptions.
+// It blocks until all subscription goroutines have finished or an error occurs.
+func (s *SQSSubscriber) Listen(ctx context.Context) error {
 	for _, sub := range s.subs {
 		if err := s.subscribe(ctx, sub); err != nil {
 			return err

@@ -1,87 +1,60 @@
-// Package sns exposes AWS SNS broker implementation
-package sns
+package aws
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sns/types"
 	"github.com/x4b1/messenger"
 	"github.com/x4b1/messenger/broker"
 )
 
-var _ broker.Broker = &Publisher{}
+var _ broker.Broker = &SNSPublisher{}
 
-var awsStringDataType = aws.String("String") //nolint: gochecknoglobals // aws constant
-
-//go:generate go tool moq -pkg sns_test -stub -out publisher_mock_test.go . Client
-
-// Client defines the AWS SNS methods used by the Publisher. This is used for testing purposes.
-type Client interface {
-	Publish(
-		ctx context.Context,
-		params *sns.PublishInput,
-		optFns ...func(*sns.Options),
-	) (*sns.PublishOutput, error)
+// SNSPublisherOption is a function to set options to SNSPublisher.
+type SNSPublisherOption interface {
+	applySNSPublisher(*SNSPublisher)
 }
 
-// Option is a function to set options to Publisher.
-type Option func(*Publisher)
-
-// WithMetaOrderingKey setups the metadata key to get the ordering key.
-func WithMetaOrderingKey(key string) Option {
-	return func(p *Publisher) {
-		p.metaOrdKey = key
+// OpenSNSPublisher creates a new SNSPublisher using the default AWS configuration.
+func OpenSNSPublisher(
+	ctx context.Context,
+	topicARN string,
+	opts ...SNSPublisherOption,
+) (*SNSPublisher, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return NewSNSPublisher(sns.NewFromConfig(cfg), topicARN, opts...), nil
 }
 
-// WithDefaultOrderingKey setups the default ordering key.
-func WithDefaultOrderingKey(key string) Option {
-	return func(p *Publisher) {
-		p.defaultOrdKey = key
-	}
-}
-
-// WithMessageIDKey modify default message id key.
-func WithMessageIDKey(key string) Option {
-	return func(p *Publisher) {
-		p.msgIDKey = key
-	}
-}
-
-// WithFifoQueue setups the flag to use fifo queue.
-func WithFifoQueue(fifo bool) Option {
-	return func(p *Publisher) {
-		p.fifo = fifo
-	}
-}
-
-// Open returns a new Publisher instance.
-func Open(awsOpts sns.Options, topicARN string, opts ...Option) (*Publisher, error) {
-	return New(sns.New(awsOpts), topicARN, opts...)
-}
-
-// New returns a new Publisher instance.
-func New(cli Client, topicARN string, opts ...Option) (*Publisher, error) {
-	p := Publisher{
+// NewSNSPublisher creates a new SNSPublisher with the given SNS client and topic ARN.
+func NewSNSPublisher(cli SNSClient, topicARN string, opts ...SNSPublisherOption) *SNSPublisher {
+	p := SNSPublisher{
 		cli:      cli,
 		topicARN: topicARN,
 		msgIDKey: broker.MessageIDKey,
 	}
 
 	for _, opt := range opts {
-		opt(&p)
+		opt.applySNSPublisher(&p)
 	}
 
-	return &p, nil
+	return &p
 }
 
-// Publisher handles the pubsub topic messages.
-type Publisher struct {
+// SNSPublisher is an implementation of broker.Broker that publishes messages to AWS SNS topics.
+// It supports both standard and FIFO topics, allowing for message ordering and deduplication.
+// The publisher can be customized via SNSPublisherOption to set ordering keys, deduplication, and other behaviors.
+// Messages are published with metadata as SNS message attributes, including a message ID for tracking.
+type SNSPublisher struct {
 	// sns service instance where are going to publish messages
-	cli Client
+	cli SNSClient
 	// queue url where are going to publish messages
 	topicARN string
 	// meta property of the message to use as ordering key
@@ -94,8 +67,10 @@ type Publisher struct {
 	msgIDKey string
 }
 
-// Publish publishes the given message to the pubsub topic.
-func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
+// Publish sends the provided message to the configured AWS SNS topic.
+// It attaches message metadata as SNS attributes and includes a message ID for tracking.
+// For FIFO topics, it sets ordering and deduplication keys as required.
+func (p SNSPublisher) Publish(ctx context.Context, msg messenger.Message) error {
 	md := msg.Metadata()
 	att := make(map[string]types.MessageAttributeValue)
 
@@ -128,7 +103,7 @@ func (p Publisher) Publish(ctx context.Context, msg messenger.Message) error {
 }
 
 // messageDeduplication checks if the publisher is setup as fifo and returns the message deduplication id.
-func (p Publisher) messageDeduplication(msg messenger.Message) *string {
+func (p SNSPublisher) messageDeduplication(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}
@@ -138,7 +113,7 @@ func (p Publisher) messageDeduplication(msg messenger.Message) *string {
 
 // orderingKey tries to get the ordering key from message metadata
 // in case the message does not have the key it defaults to Publisher setup.
-func (p Publisher) orderingKey(msg messenger.Message) *string {
+func (p SNSPublisher) orderingKey(msg messenger.Message) *string {
 	if !p.fifo {
 		return nil
 	}

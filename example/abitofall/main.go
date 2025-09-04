@@ -20,13 +20,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/testcontainers/testcontainers-go/modules/localstack"
 	"github.com/x4b1/messenger"
-	"github.com/x4b1/messenger/broker/sns"
-	"github.com/x4b1/messenger/broker/sqs"
+	awsbroker "github.com/x4b1/messenger/broker/aws"
 	"github.com/x4b1/messenger/inspect"
 	"github.com/x4b1/messenger/internal/testhelpers"
 	"github.com/x4b1/messenger/store/postgres"
 	"github.com/x4b1/messenger/store/postgres/pgx"
+)
+
+const (
+	testTopic        = "test-topic"
+	testSubscription = "test-subscription"
 )
 
 func main() {
@@ -47,42 +52,39 @@ func run() error {
 	}
 	defer closeStore()
 
-	awsContainer, err := testhelpers.CreateLocalStackContainer(ctx)
+	awsBroker, err := NewAWS(ctx)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = awsContainer.Terminate(ctx) }()
+	defer awsBroker.Close(ctx)
 
-	pubsub, err := initPubSub(ctx, awsContainer.Config)
-	if err != nil {
-		return err
-	}
+	awsSubscriber := awsbroker.NewSQSSubscriber(awsBroker.sqs)
 
-	pubsub.subscriber.Register(
-		messenger.NewSubscription(
-			"test-queue",
-			func(_ context.Context, msg messenger.Message) error {
-				bAtt, _ := json.Marshal(msg.Metadata())
+	awsSubscriber.Register(messenger.NewSubscription(
+		awsBroker.queueARN,
+		func(_ context.Context, msg messenger.Message) error {
+			bAtt, _ := json.Marshal(msg.Metadata())
 
-				//nolint: forbidigo // need to print command line to show result
-				fmt.Printf("\t - id: %s\n", msg.ID())
-				//nolint: forbidigo // need to print command line to show result
-				fmt.Printf("\t - attributes: %s\n", string(bAtt))
-				//nolint: forbidigo // need to print command line to show result
-				fmt.Printf("\t - body: %s\n", msg.Payload())
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - id: %s\n", msg.ID())
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - attributes: %s\n", string(bAtt))
+			//nolint: forbidigo // need to print command line to show result
+			fmt.Printf("\t - body: %s\n", msg.Payload())
 
-				i, _ := strconv.Atoi(msg.Metadata()["num"])
-				if i%2 == 0 {
-					return errors.New("some errr")
-				}
-				return nil
-			},
-		),
-	)
+			i, _ := strconv.Atoi(msg.Metadata()["num"])
+			if i%2 == 0 {
+				return errors.New("some errr")
+			}
+			return nil
+		},
+	))
+
+	snsPublisher := awsbroker.NewSNSPublisher(awsBroker.sns, awsBroker.topicARN)
+
+	msn := messenger.NewMessenger(pgStore, snsPublisher)
 
 	http.Handle("/", inspect.NewInspector(pgStore))
-
-	msn := messenger.NewMessenger(pgStore, pubsub.publisher)
 
 	go func() {
 		if err := publishEvents(ctx, pgStore); err != nil {
@@ -105,7 +107,7 @@ func run() error {
 	}()
 
 	go func() {
-		if err := pubsub.subscriber.Listen(ctx); err != nil {
+		if err := awsSubscriber.Listen(ctx); err != nil {
 			log.Fatal(fmt.Errorf("listening events: %w", err))
 		}
 	}()
@@ -191,55 +193,98 @@ func setupStore(ctx context.Context) (*pgx.Store[any], func(), error) {
 	return s, closeContainer, nil
 }
 
-type pubsub struct {
-	publisher *sns.Publisher
+func NewAWS(ctx context.Context) (*AWS, error) {
+	aws := &AWS{}
 
-	subscriber *sqs.Subscriber
-	topic      *aws_sns.CreateTopicOutput
-	queue      *aws_sqs.CreateQueueOutput
+	if err := aws.init(ctx); err != nil {
+		return nil, err
+	}
+
+	return aws, nil
 }
 
-func initPubSub(ctx context.Context, awsCfg aws.Config) (*pubsub, error) {
-	snsClient := aws_sns.NewFromConfig(awsCfg)
+type AWS struct {
+	container *localstack.LocalStackContainer
 
-	topic, err := snsClient.CreateTopic(ctx, &aws_sns.CreateTopicInput{
-		Name: aws.String("test-topic"),
-	})
+	config aws.Config
+
+	sns *aws_sns.Client
+	sqs *aws_sqs.Client
+
+	topicARN string
+	queueARN string
+}
+
+func (a *AWS) init(ctx context.Context) (err error) {
+	a.config, a.container, err = testhelpers.CreateLocalStackContainer(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sqsClient := aws_sqs.NewFromConfig(awsCfg)
+	a.sns = aws_sns.NewFromConfig(a.config)
+	a.sqs = aws_sqs.NewFromConfig(a.config)
 
-	queue, err := sqsClient.CreateQueue(ctx, &aws_sqs.CreateQueueInput{
-		QueueName: aws.String("test-queue"),
+	a.topicARN, err = a.createTopic(ctx, testTopic)
+	if err != nil {
+		return err
+	}
+
+	a.queueARN, err = a.createQueue(ctx, testSubscription)
+	if err != nil {
+		return err
+	}
+
+	return a.bindQueueTopic(ctx, a.queueARN, a.topicARN)
+}
+
+func (a *AWS) createTopic(ctx context.Context, topicName string) (string, error) {
+	topic, err := a.sns.CreateTopic(ctx, &aws_sns.CreateTopicInput{
+		Name: aws.String(topicName),
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	queueAtt, err := sqsClient.GetQueueAttributes(ctx, &aws_sqs.GetQueueAttributesInput{
+
+	return aws.ToString(topic.TopicArn), err
+}
+
+func (a *AWS) createQueue(ctx context.Context, queueName string) (string, error) {
+	queue, err := a.sqs.CreateQueue(ctx, &aws_sqs.CreateQueueInput{
+		QueueName: aws.String(queueName),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println(
+		"🔍 ~ (*AWS).createQueue ~ example/abitofall/main.go:258 ~ variable:",
+		*queue.QueueUrl,
+	)
+	queueAtt, err := a.sqs.GetQueueAttributes(ctx, &aws_sqs.GetQueueAttributesInput{
 		QueueUrl:       queue.QueueUrl,
 		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameQueueArn},
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	_, err = snsClient.Subscribe(ctx, &aws_sns.SubscribeInput{
+
+	return queueAtt.Attributes[string(types.QueueAttributeNameQueueArn)], nil
+}
+
+func (a *AWS) bindQueueTopic(ctx context.Context, queueARN, topicARN string) error {
+	_, err := a.sns.Subscribe(ctx, &aws_sns.SubscribeInput{
 		Protocol:   aws.String("sqs"),
-		TopicArn:   topic.TopicArn,
-		Endpoint:   aws.String(queueAtt.Attributes[string(types.QueueAttributeNameQueueArn)]),
+		TopicArn:   aws.String(topicARN),
+		Endpoint:   aws.String(queueARN),
 		Attributes: map[string]string{"RawMessageDelivery": "true"},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	pub, err := sns.New(snsClient, aws.ToString(topic.TopicArn))
-	if err != nil {
-		return nil, err
-	}
+	return nil
+}
 
-	sub := sqs.NewSubscriber(aws_sqs.NewFromConfig(awsCfg))
-
-	return &pubsub{pub, sub, topic, queue}, nil
+func (a *AWS) Close(ctx context.Context) {
+	_ = a.container.Terminate(ctx)
 }
