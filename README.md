@@ -150,6 +150,8 @@ http.ListenAndServe(":8080", nil)
 
 This UI allows you to view message details, metadata, and their published status. You can also manually trigger a republish for selected messages.
 
+![inspector screenshot](./assets/inspector.png)
+
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open an issue or submit a pull request.
