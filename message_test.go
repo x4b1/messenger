@@ -37,15 +37,41 @@ func TestGenericMessage(t *testing.T) {
 
 		require.Equal(t, msg.MsgPublished, msg.Published())
 		require.Equal(t, msg.MsgAt, msg.At())
+	})
+}
+
+func TestGenericMessage_MarshalJSON(t *testing.T) {
+	t.Run("raw string payload", func(t *testing.T) {
+		somePayload := "hello world"
+
+		msg, err := messenger.NewMessage([]byte(somePayload))
+		require.NoError(t, err)
 
 		b, err := json.Marshal(msg)
 		require.NoError(t, err)
 		require.JSONEq(t, `{
 			"id":"`+msg.ID()+`",
-			"metadata":{"`+mdKey+`":"`+mdValue+`"},
+			"metadata":{},
 			"payload":"`+somePayload+`",
 			"published":false,
 			"at":"`+msg.At().Format(time.RFC3339Nano)+`"
 		}`, string(b))
+	})
+
+	t.Run("json payload", func(t *testing.T) {
+		somePayload := `{"hello":"world"}`
+
+		msg, err := messenger.NewMessage([]byte(somePayload))
+		require.NoError(t, err)
+
+		b, err := json.Marshal(msg)
+		require.NoError(t, err)
+		require.JSONEq(t, `{
+		"id":"`+msg.ID()+`",
+		"metadata":{},
+		"payload":`+somePayload+`,
+		"published":false,
+		"at":"`+msg.At().Format(time.RFC3339Nano)+`"
+	}`, string(b))
 	})
 }

@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -18,6 +17,7 @@ import (
 	aws_sns "github.com/aws/aws-sdk-go-v2/service/sns"
 	aws_sqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/fatih/color"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
@@ -65,17 +65,13 @@ func run() error {
 		func(_ context.Context, msg messenger.Message) error {
 			bAtt, _ := json.Marshal(msg.Metadata())
 
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - id: %s\n", msg.ID())
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - attributes: %s\n", string(bAtt))
-			//nolint: forbidigo // need to print command line to show result
-			fmt.Printf("\t - body: %s\n", msg.Payload())
+			color.Yellow(
+				"[AWS] Message received\n  ID: %s\n  Metadata: %s\n  Payload: %s\n",
+				msg.ID(),
+				string(bAtt),
+				string(msg.Payload()),
+			)
 
-			i, _ := strconv.Atoi(msg.Metadata()["num"])
-			if i%2 == 0 {
-				return errors.New("some errr")
-			}
 			return nil
 		},
 	))
@@ -145,21 +141,11 @@ func generateMessages() []any {
 	msgs := []any{}
 
 	for i := range messageBatch {
-		msg, _ := messenger.NewMessage([]byte(`{"hello": "word"}`))
+		msg, _ := messenger.NewMessage(fmt.Appendf(nil, `{"message_number": "%d"}`, i+1))
 		msg.SetMetadata("trace_id", traceID)
 		msg.SetMetadata("num", strconv.Itoa(i+1))
 		msgs = append(msgs, msg)
 	}
-
-	msgs = append(msgs, struct {
-		Message string `json:"message,omitempty"`
-		TraceID string `json:"trace_id,omitempty"`
-		Num     int    `json:"num,omitempty"`
-	}{
-		Message: "this is a struct to be published",
-		TraceID: traceID,
-		Num:     6,
-	})
 
 	return msgs
 }
@@ -255,11 +241,6 @@ func (a *AWS) createQueue(ctx context.Context, queueName string) (string, error)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println(
-		"🔍 ~ (*AWS).createQueue ~ example/abitofall/main.go:258 ~ variable:",
-		*queue.QueueUrl,
-	)
 	queueAtt, err := a.sqs.GetQueueAttributes(ctx, &aws_sqs.GetQueueAttributesInput{
 		QueueUrl:       queue.QueueUrl,
 		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameQueueArn},
