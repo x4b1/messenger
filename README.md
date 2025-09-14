@@ -9,6 +9,7 @@
 <img src="https://codecov.io/gh/x4b1/messenger/graph/badge.svg?token=PJ6KKQUQFC"/>
 </a>&nbsp;
 <a href="https://goreportcard.com/report/github.com/x4b1/messenger" target="_blank"><img src="https://goreportcard.com/badge/github.com/xabi93/messenger" alt="go report" /></a>
+<a href="https://deepwiki.com/x4b1/messenger"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
 A minimal, flexible Go library for implementing the outbox pattern. It reliably sends messages from a datastore to various message brokers, ensuring events are not lost even if services are temporarily down. It is ideal for building robust, event-driven architectures.
